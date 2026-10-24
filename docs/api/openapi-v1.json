@@ -2850,7 +2850,7 @@
             ]
           }
         },
-        "description": "Body of \u0060POST /platform/tenants/{id}/admins\u0060. Rules: \u0060AddMemberCommandValidator\u0060 (ADR-0014). The issuer is\r\nnot part of the request: the new administrator signs in through the tenant identity provider, so the API uses the\r\nissuer it trusts for tenant tokens (ADR-0009)."
+        "description": "Body of \u0060POST /platform/tenants/{id}/admins\u0060. Rules: \u0060AddMemberCommandValidator\u0060 (ADR-0014). The issuer is\nnot part of the request: the new administrator signs in through the tenant identity provider, so the API uses the\nissuer it trusts for tenant tokens (ADR-0009)."
       },
       "AdjustStockRequest": {
         "required": [
@@ -2985,7 +2985,7 @@
             ]
           }
         },
-        "description": "The body of a payment request: only the provider\u0027s payment-method token (for example \u0060sim_success\u0060 or\r\n\u0060pm_card_visa\u0060). The amount is the order\u0027s; card data is never accepted."
+        "description": "The body of a payment request: only the provider\u0027s payment-method token (for example \u0060sim_success\u0060 or\n\u0060pm_card_visa\u0060). The amount is the order\u0027s; card data is never accepted."
       },
       "CreatePlanRequest": {
         "required": [
@@ -3155,7 +3155,7 @@
             "format": "date-time"
           }
         },
-        "description": "An export job: status \u0060queued\u0060, \u0060running\u0060, \u0060succeeded\u0060 or \u0060failed\u0060 (with a failure code such as\r\n\u0060too_many_rows\u0060), the rows written, and until when its file downloads."
+        "description": "An export job: status \u0060queued\u0060, \u0060running\u0060, \u0060succeeded\u0060 or \u0060failed\u0060 (with a failure code such as\n\u0060too_many_rows\u0060), the rows written, and until when its file downloads."
       },
       "IFormFile": {
         "type": "string",
@@ -3272,7 +3272,7 @@
             "format": "date-time"
           }
         },
-        "description": "An import job: status \u0060receiving\u0060, \u0060queued\u0060, \u0060running\u0060, \u0060succeeded\u0060 or \u0060failed\u0060 (with a failure\r\ncode such as \u0060invalid_header\u0060 or \u0060too_many_rows\u0060), and what it did so far."
+        "description": "An import job: status \u0060receiving\u0060, \u0060queued\u0060, \u0060running\u0060, \u0060succeeded\u0060 or \u0060failed\u0060 (with a failure\ncode such as \u0060invalid_header\u0060 or \u0060too_many_rows\u0060), and what it did so far."
       },
       "Member": {
         "required": [
@@ -3410,7 +3410,7 @@
             }
           }
         },
-        "description": "The body of \u0060GET /v1/me/memberships\u0060: the caller\u0027s own active memberships in active tenants. A wrapper object\r\nrather than a bare array, so a field (paging, say) can be added later without breaking clients."
+        "description": "The body of \u0060GET /v1/me/memberships\u0060: the caller\u0027s own active memberships in active tenants. A wrapper object\nrather than a bare array, so a field (paging, say) can be added later without breaking clients."
       },
       "OpenSupportGrantRequest": {
         "required": [
@@ -3525,7 +3525,7 @@
             }
           }
         },
-        "description": "Body of \u0060POST /tenants/{tenantId}/orders\u0060 and \u0060PUT /tenants/{tenantId}/orders/{orderId}/lines\u0060.\r\nRules: \u0060OrderLinesCommandValidator\u0060 (ADR-0014)."
+        "description": "Body of \u0060POST /tenants/{tenantId}/orders\u0060 and \u0060PUT /tenants/{tenantId}/orders/{orderId}/lines\u0060.\nRules: \u0060OrderLinesCommandValidator\u0060 (ADR-0014)."
       },
       "OrderResponse": {
         "required": [
@@ -3849,7 +3849,7 @@
             "format": "date-time"
           }
         },
-        "description": "A refund as the API returns it, with its audit fields. Status is \u0060processing\u0060, \u0060succeeded\u0060, \u0060failed\u0060 or\r\n\u0060requires_review\u0060; kind is \u0060refund\u0060 or \u0060cancellation\u0060."
+        "description": "A refund as the API returns it, with its audit fields. Status is \u0060processing\u0060, \u0060succeeded\u0060, \u0060failed\u0060 or\n\u0060requires_review\u0060; kind is \u0060refund\u0060 or \u0060cancellation\u0060."
       },
       "StockResponse": {
         "required": [
@@ -3956,7 +3956,7 @@
             "format": "date-time"
           }
         },
-        "description": "A subscription as the API returns it. Status is \u0060trialing\u0060, \u0060incomplete\u0060, \u0060active\u0060, \u0060past_due\u0060 or\r\n\u0060cancelled\u0060; the next charge is due at DateTimeOffset SubscriptionResponse.CurrentPeriodEnd unless bool SubscriptionResponse.CancelAtPeriodEnd."
+        "description": "A subscription as the API returns it. Status is \u0060trialing\u0060, \u0060incomplete\u0060, \u0060active\u0060, \u0060past_due\u0060 or\n\u0060cancelled\u0060; the next charge is due at DateTimeOffset SubscriptionResponse.CurrentPeriodEnd unless bool SubscriptionResponse.CancelAtPeriodEnd."
       },
       "SupportJobResponse": {
         "required": [

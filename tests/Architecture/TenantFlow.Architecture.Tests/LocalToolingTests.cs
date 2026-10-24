@@ -101,7 +101,7 @@ public sealed partial class LocalToolingTests
     [GeneratedRegex(@"\.(ps1|psm1|psd1|bat|cmd)$", RegexOptions.IgnoreCase)]
     private static partial Regex HostScript();
 
-    [GeneratedRegex(@"(^|/)(\.git|\.claude|\.vs|bin|obj|artifacts|node_modules|\.storage|TestResults)/")]
+    [GeneratedRegex(@"(^|/)(\.git|\.claude|\.vs|\.nuget|bin|obj|artifacts|node_modules|\.storage|TestResults)/")]
     private static partial Regex Ignored();
 
     private static JsonNode Settings(string host) =>

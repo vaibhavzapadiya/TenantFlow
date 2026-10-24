@@ -42,27 +42,46 @@ internal static class OpenApiExtensions
             StringComparison.Ordinal);
 
     public static IServiceCollection AddTenantFlowOpenApi(this IServiceCollection services) =>
-        services.AddOpenApi("v1", options => options.AddDocumentTransformer((document, context, _) =>
+        services.AddOpenApi("v1", options =>
         {
-            document.Info = new OpenApiInfo { Title = "TenantFlow API", Version = "v1" };
-            // The test host's address must not leak into the reviewed snapshot.
-            document.Servers = [];
-            // SPEC-0014: the reference page's sign-in, on a developer's machine only. The reviewed snapshot is generated in
-            // Production, so the published contract never carries a client id or an issuer URL.
-            if (context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            // .NET 10 copies XML doc comments into the document as written, so a CRLF working tree would publish a
+            // different contract from an LF one. Normalising keeps the snapshot identical on every machine (SPEC-0015).
+            options.AddSchemaTransformer((schema, _, _) =>
             {
-                var issuers = context.ApplicationServices.GetRequiredService<IOptionsMonitor<OidcIssuerOptions>>();
-                document.Components ??= new OpenApiComponents();
-                // Microsoft.OpenApi 2.x leaves the collection null until something is added to it.
-                document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.Ordinal);
-                document.Components.SecuritySchemes[TenantSignInScheme] =
-                    SignInScheme("Tenant user (realm tenantflow)", issuers.Get(AuthenticationExtensions.TenantScheme).Authority!, "tenantflow-api-docs");
-                document.Components.SecuritySchemes[PlatformSignInScheme] =
-                    SignInScheme("Platform operator (realm tenantflow-platform)", issuers.Get(AuthenticationExtensions.PlatformScheme).Authority!, "tenantflow-platform-api-docs");
-            }
+                schema.Description = NormalizeNewlines(schema.Description);
+                return Task.CompletedTask;
+            });
+            options.AddOperationTransformer((operation, _, _) =>
+            {
+                operation.Summary = NormalizeNewlines(operation.Summary);
+                operation.Description = NormalizeNewlines(operation.Description);
+                return Task.CompletedTask;
+            });
+            options.AddDocumentTransformer((document, context, _) =>
+            {
+                document.Info = new OpenApiInfo { Title = "TenantFlow API", Version = "v1" };
+                // The test host's address must not leak into the reviewed snapshot.
+                document.Servers = [];
+                // SPEC-0014: the reference page's sign-in, on a developer's machine only. The reviewed snapshot is generated in
+                // Production, so the published contract never carries a client id or an issuer URL.
+                if (context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
+                {
+                    var issuers = context.ApplicationServices.GetRequiredService<IOptionsMonitor<OidcIssuerOptions>>();
+                    document.Components ??= new OpenApiComponents();
+                    // Microsoft.OpenApi 2.x leaves the collection null until something is added to it.
+                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.Ordinal);
+                    document.Components.SecuritySchemes[TenantSignInScheme] =
+                        SignInScheme("Tenant user (realm tenantflow)", issuers.Get(AuthenticationExtensions.TenantScheme).Authority!, "tenantflow-api-docs");
+                    document.Components.SecuritySchemes[PlatformSignInScheme] =
+                        SignInScheme("Platform operator (realm tenantflow-platform)", issuers.Get(AuthenticationExtensions.PlatformScheme).Authority!, "tenantflow-platform-api-docs");
+                }
 
-            return Task.CompletedTask;
-        }));
+                return Task.CompletedTask;
+            });
+        });
+
+    private static string? NormalizeNewlines(string? text) =>
+        text is null ? null : text.ReplaceLineEndings("\n");
 
     public static WebApplication MapTenantFlowOpenApi(this WebApplication app)
     {
