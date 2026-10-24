@@ -197,19 +197,19 @@ exceptions:
   # Keycloak 26.8.0: pcre2 in the UBI 9 base. 26.8.1 (2026-10-13) fixes all three; its 14-day cooldown ends 2026-10-27.
   - tool: images
     id: CVE-2026-103111
-    target: quay.io/keycloak/keycloak:26.8.0
+    target: quay.io/keycloak/keycloak:26.8.1
     reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - pcre2 - Out-of-bounds write via crafted regular expression. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-86145
-    target: quay.io/keycloak/keycloak:26.8.0
+    target: quay.io/keycloak/keycloak:26.8.1
     reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - PCRE2 - Out-of-bounds write allows arbitrary code execution via crafted regular expressions. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-89161
-    target: quay.io/keycloak/keycloak:26.8.0
+    target: quay.io/keycloak/keycloak:26.8.1
     reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - PCRE2 - Memory corruption vulnerability in pcre2_jit_match. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
     owner: user
     expires: 2026-11-21
@@ -321,79 +321,79 @@ exceptions:
   # Grafana 13.2.3: Go modules in grafana and its bundled data source plugins. 13.2.4 (2026-10-13, the latest 13.x) still ships all thirteen.
   - tool: images
     id: CVE-2026-100349
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.146.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via nil pointer dereference in. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-100351
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.147.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Authentication bypass via URL path decoding. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-100352
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.148.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via improper handling of non-finite. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-100353
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.149.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via nil-pointer dereference in. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-100354
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.149.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via unbounded recursion during. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-111943
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: stdlib 1.26.6 (fixed in 1.26.10 or 1.27.3), stdlib 1.26.7 (fixed in 1.26.10 or 1.27.3) in grafana and 13 more binaries; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-21728
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/grafana/tempo 1.5.1-0.20260910130453-bcfe9f230c1d (fixed in 2.8.4 or 2.9.2 or 2.10.2) in gpx_grafana-tempo-datasource_linux_amd64; grafana/tempo - Tempo - Denial of Service via large queries. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-28377
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: github.com/grafana/tempo 1.5.1-0.20260910130453-bcfe9f230c1d (fixed in 2.10.3) in gpx_grafana-tempo-datasource_linux_amd64; Grafana Tempo - Grafana Tempo - Information disclosure of S3 encryption key via status config. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-78667
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2), stdlib 1.26.7 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-78669
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: golang.org/x/net 0.58.0 (fixed in 0.60.0), stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-84304
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: google.golang.org/grpc 1.83.0 (fixed in 1.83.1) in gpx_grafana_cloudmonitoring_datasource_linux_amd64; google.golang.org/grpc - gRPC-Go - Denial of Service via HTTP/2 DATA Frame Fragmentation. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-84445
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: google.golang.org/grpc 1.83.1 (fixed in 1.82.2 or 1.83.2 or 1.84.0-dev.0.20260825144003-d5a41119e0e3 or 1.85.0-dev.0.20260825072537-93e31b48545e), google.golang.org/grpc 1.83.0 (fixed in 1.82.2 or 1.83.2 or 1.84.0-dev.0.20260825144003-d5a41119e0e3 or 1.85.0-dev.0.20260825072537-93e31b48545e) in gpx_grafana_postgresql_datasource_linux_amd64 and 4 more binaries; google.golang.org/grpc - gRPC-Go - Denial of Service via malformed RPC requests. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
   - tool: images
     id: CVE-2026-97031
-    target: grafana/grafana:13.2.3
+    target: grafana/grafana:13.2.4
     reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2), stdlib 1.26.7 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
@@ -401,5 +401,39 @@ exceptions:
     id: AWS-0053
     target: deploy/terraform/environment/load_balancer.tf aws_lb.main
     reason: The load balancer is the product's public entry point (SPEC-0012). It listens on 443 and on 80 for a redirect only, drops invalid headers, and its security group reaches only the API and Keycloak target ports.
+    owner: user
+    expires: 2027-04-22
+  # Write scopes that exist because of a security control, not in spite of one (approved by the user, 2026-10-24).
+  # Every workflow defaults to "permissions: {}" and each job asks for the minimum it needs; neither scope below
+  # grants write access to repository contents. The ids carry a line number, so re-check them whenever a
+  # permissions block moves.
+  - tool: config
+    id: workflow:deploy.yml:write_permission:line28
+    target: deploy.yml deploy job, id-token - write
+    reason: OIDC federation to AWS with no long-lived access key (ADR-0032, ADR-0033). The job exchanges a short-lived GitHub token for an AWS role; id-token - write grants only the ability to mint that token. Removing it would mean storing static AWS credentials as repository secrets, which is the risk SC-A08 exists to avoid.
+    owner: user
+    expires: 2027-04-22
+  - tool: config
+    id: workflow:release.yml:write_permission:line32
+    target: release.yml build job, id-token - write
+    reason: The same OIDC federation as the deploy.yml entry above, used here to push images to ECR without a static credential (ADR-0032).
+    owner: user
+    expires: 2027-04-22
+  - tool: config
+    id: workflow:release.yml:write_permission:line33
+    target: release.yml build job, attestations - write
+    reason: Build provenance and SBOM attestations (SPEC-0012 S3d, threat row SC-A14). This scope is what lets the build attach signed provenance to the image it just pushed; it grants no write access to repository contents. Removing it would remove the supply-chain evidence the threat model asks for.
+    owner: user
+    expires: 2027-04-22
+  - tool: config
+    id: workflow:release.yml:write_permission:line178
+    target: release.yml staging job, id-token - write
+    reason: The staging job calls deploy.yml, which needs the OIDC token to assume the deployment role; a called workflow cannot be granted more than its caller holds.
+    owner: user
+    expires: 2027-04-22
+  - tool: config
+    id: workflow:release.yml:write_permission:line194
+    target: release.yml prod job, id-token - write
+    reason: The same OIDC token as the staging job, for the prod deployment role, behind the prod environment's reviewer approval.
     owner: user
     expires: 2027-04-22
