@@ -7,7 +7,7 @@
 # files seed a new environment; later realm changes are made in the admin console until a config-as-code tool is added.
 # The build cache is made here, so the container runs with a read-only root and a writable data/tmp only.
 
-ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
 
 FROM ${KEYCLOAK_IMAGE} AS build
 # Build-time options; the runtime must not contradict them (deploy/terraform/environment/services.tf).
