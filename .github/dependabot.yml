@@ -17,6 +17,12 @@ updates:
       # EF Core and Npgsql release in lockstep; a half-upgraded pair fails at runtime, not at build.
       data-access:
         patterns: ["Microsoft.EntityFrameworkCore*", "Npgsql*"]
+    ignore:
+      # Quartz 4.x still ships every few days: 4.5.0, 4.5.1 and 4.6.0 all landed within two weeks of 4.4.0. The 3.22
+      # line is the deliberate choice in Directory.Packages.props (ADR-0023), and the two Quartz packages have to move
+      # together, so the major is a reviewed change rather than a weekly pull request.
+      - dependency-name: Quartz.*
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -31,6 +37,24 @@ updates:
       interval: weekly
     cooldown:
       default-days: 14
+    ignore:
+      # An architecture suffix is not a version. 0.162.0-386 is the 32-bit x86 variant of 0.162.0, and pinning it
+      # would break every amd64 and arm64 machine; the plain tag is the multi-arch manifest.
+      - dependency-name: otel/opentelemetry-collector-contrib
+        versions:
+          - "*-386"
+          - "*-amd64"
+          - "*-arm64"
+          - "*-armv7"
+          - "*-ppc64le"
+          - "*-riscv64"
+          - "*-s390x"
+          - "*-windows-*"
+          - "*-nightly*"
+      # A PostgreSQL major changes the deployed RDS engine and the Testcontainers fixture too, so it belongs in a
+      # spec under ADR-0012 rather than a weekly bump of compose.yaml alone.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: dotnet-sdk
     directory: /
