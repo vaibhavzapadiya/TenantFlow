@@ -45,8 +45,11 @@ public sealed class DatabaseTelemetryTests(TenantDatabaseFixture fixture) : ICla
         Assert.All(databaseSpans, span => Assert.DoesNotContain(Planted, span.DisplayName, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Npgsql names the system db.system (older semantic conventions) or db.system.name (current ones); it moved to
+    // the current names in 10.0 (SPEC-0015).
     private static bool IsDatabaseSpan(CapturedSpan span) =>
-        span.Kind == ActivityKind.Client && span.Tags.GetValueOrDefault("db.system") == "postgresql";
+        span.Kind == ActivityKind.Client
+        && (span.Tags.GetValueOrDefault("db.system.name") ?? span.Tags.GetValueOrDefault("db.system")) == "postgresql";
 
     // Npgsql names the statement db.statement (older semantic conventions) or db.query.text (current ones).
     private static string? Statement(CapturedSpan span) =>

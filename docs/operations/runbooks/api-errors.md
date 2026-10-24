@@ -21,7 +21,7 @@ Grafana (local `admin`), Prometheus, Loki and Tempo through Grafana's Explore. N
   `{ resource.service.name = "tenantflow-api" && span.http.response.status_code >= 500 }`
 - Error logs with their trace ids (LogQL): `{service_name="tenantflow-api"} | severity_text=~"Error|Critical"`
 - Slow or failing database commands inside a failing trace (TraceQL):
-  `{ resource.service.name = "tenantflow-api" && span.db.system = "postgresql" && (status = error || duration > 500ms) }`
+  `{ resource.service.name = "tenantflow-api" && span.db.system.name = "postgresql" && (status = error || duration > 500ms) }`
 
 Open a failing trace from Tempo; the **Logs for this span** link shows its logs. Third-party exception messages are
 redacted in exported logs (ADR-0031): the type and stack identify the fault; reproduce locally for the text.

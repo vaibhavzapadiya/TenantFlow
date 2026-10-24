@@ -15,7 +15,7 @@ Grafana; on the Worker host, read access to the storage root (`Storage:Root`, AD
 - Failures by kind (PromQL): `sum by (kind, outcome) (increase(tenantflow_imports_exports_jobs_total[1h]))`
 - Is the timer job running? (PromQL): `sum by (outcome) (increase(tenantflow_scheduling_runs_total{job="timers.imports_exports"}[15m]))`
 - Runner errors (LogQL): `{service_name="tenantflow-worker"} |= "export" | severity_text=~"Error|Critical"`
-- The job's trace (TraceQL): `{ resource.service.name = "tenantflow-worker" && span.db.system = "postgresql" && span.db.statement =~ ".*imports_exports.*" }`
+- The job's trace (TraceQL): `{ resource.service.name = "tenantflow-worker" && span.db.system.name = "postgresql" && span.db.query.text =~ ".*imports_exports.*" }`
 
 ## Immediate safe mitigations
 - Worker or timer job down: see [hosts and scheduled jobs](hosts-and-scheduled-jobs.md); due jobs run when it returns.
