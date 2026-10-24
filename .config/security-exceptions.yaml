@@ -397,6 +397,12 @@ exceptions:
     reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2), stdlib 1.26.7 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
     owner: user
     expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-111497
+    target: grafana/grafana:13.2.4
+    reason: brotli-libs 1.2.0-r1 (fixed in 1.2.1-r0); brotli - Out-of-Bounds Write in Google Brotli Decoder. No released grafana image ships the fixed package - 13.2.4 is the newest tag and still carries 1.2.0-r1, so there is nothing to upgrade to; the bump from 13.2.3 to 13.2.4 was made for this CVE and did not clear it. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and decompresses only what those local services send it, so nothing untrusted reaches the decoder. Short expiry on purpose - drop this entry and re-scan as soon as a grafana release carries brotli-libs 1.2.1-r0.
+    owner: user
+    expires: 2026-11-21
   - tool: iac
     id: AWS-0053
     target: deploy/terraform/environment/load_balancer.tf aws_lb.main
