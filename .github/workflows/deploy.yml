@@ -1,0 +1,118 @@
+# Deploys one build to one environment (SPEC-0012 S4, criteria 9 to 11); called by release.yml, never started by hand.
+# The job runs in the GitHub environment of the same name, so its OIDC subject is repo:<repo>:environment:<name>, the
+# only subject that environment's deploy role trusts (deploy/terraform/environment/iam.tf).
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment: { type: string, required: true }
+      commit: { type: string, required: true }
+      api: { type: string, required: true }
+      worker: { type: string, required: true }
+      migrator: { type: string, required: true }
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: ${{ inputs.environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+      attestations: read
+    env:
+      CLUSTER: ${{ vars.ECS_CLUSTER }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+    steps:
+      # Only images this repository's workflows built are deployed (SC-A14).
+      - name: Verify build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          IMAGES: ${{ inputs.api }} ${{ inputs.worker }} ${{ inputs.migrator }}
+        run: |
+          for image in $IMAGES; do
+            gh attestation verify "oci://$image" --repo "$REPOSITORY" --signer-workflow "$REPOSITORY/.github/workflows/release.yml"
+          done
+
+      - name: AWS role session for ${{ inputs.environment }}
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Applied migrations are never edited: AppliedMigrationTests fails the build before any release (SC-A12).
+      # Each rollout takes the latest revision Terraform registered and replaces only the named container's image, so a
+      # sidecar or a setting changed by Terraform is kept (deploy/terraform/README.md, "Who changes a task definition").
+      - name: Render the Migrator
+        id: migrator
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition-family: ${{ vars.ECS_CLUSTER }}-migrator
+          container-name: migrator
+          image: ${{ inputs.migrator }}
+
+      # The action fails unless every container of the task exits 0; then no service has changed.
+      - name: Migrate
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.migrator.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          run-task: true
+          run-task-launch-type: FARGATE
+          run-task-subnets: ${{ vars.MIGRATOR_SUBNETS }}
+          run-task-security-groups: ${{ vars.MIGRATOR_SECURITY_GROUP }}
+          # Public subnets without a NAT gateway (deploy/terraform/environment/network.tf).
+          run-task-assign-public-IP: ENABLED
+          run-task-started-by: ${{ inputs.commit }}
+          wait-for-task-stopped: true
+          wait-for-minutes: 30
+
+      # Criterion 11: the version still running must work on the schema the Migrator just applied.
+      - name: Previous version passes on the new schema
+        run: curl --fail --silent --show-error --max-time 10 --retry 5 --retry-all-errors "$API_BASE_URL/health/ready"
+
+      - name: Render the Worker
+        id: worker
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition-family: ${{ vars.ECS_CLUSTER }}-worker
+          container-name: worker
+          image: ${{ inputs.worker }}
+
+      # The deployment circuit breaker rolls back a revision that never becomes healthy; the action then fails the job.
+      - name: Roll the Worker
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.worker.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: worker
+          wait-for-service-stability: true
+          wait-for-minutes: 30
+
+      - name: Render the API
+        id: api
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition-family: ${{ vars.ECS_CLUSTER }}-api
+          container-name: api
+          image: ${{ inputs.api }}
+
+      - name: Roll the API
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.api.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: api
+          wait-for-service-stability: true
+          wait-for-minutes: 30
+
+      - name: New version is ready
+        run: curl --fail --silent --show-error --max-time 10 --retry 5 --retry-all-errors "$API_BASE_URL/health/ready"

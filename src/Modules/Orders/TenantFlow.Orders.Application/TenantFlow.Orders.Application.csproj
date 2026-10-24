@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Orders module use cases (ADR-0013) and request validation (ADR-0014). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Orders.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Validation\TenantFlow.BuildingBlocks.Validation.csproj" />
+    <ProjectReference Include="..\TenantFlow.Orders.Contracts\TenantFlow.Orders.Contracts.csproj" />
+    <ProjectReference Include="..\TenantFlow.Orders.Domain\TenantFlow.Orders.Domain.csproj" />
+    <!-- Only contracts: the tenant context, product snapshots, stock reservations, payment events, and tenant existence (ADR-0002, ADR-0020, ADR-0022). -->
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <ProjectReference Include="..\..\Catalog\TenantFlow.Catalog.Contracts\TenantFlow.Catalog.Contracts.csproj" />
+    <ProjectReference Include="..\..\Inventory\TenantFlow.Inventory.Contracts\TenantFlow.Inventory.Contracts.csproj" />
+    <ProjectReference Include="..\..\Payments\TenantFlow.Payments.Contracts\TenantFlow.Payments.Contracts.csproj" />
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+    <!-- The audit event a change writes to the module's outbox (ADR-0026). -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

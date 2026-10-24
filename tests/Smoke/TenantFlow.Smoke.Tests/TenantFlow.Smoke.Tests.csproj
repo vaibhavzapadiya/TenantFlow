@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    End-to-end checks against the running local stack (SPEC-0001, SPEC-0002 criteria 9 and 10, SPEC-0010): the
+    observability profile and both hosts must be running. Run with "dotnet run (project tests/Smoke/TenantFlow.Smoke.Tests)"
+    at the milestone gate. IsTestProject is false so the default gate (dotnet test on the solution, as in CI) builds
+    this project but does not run it.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Smoke.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+    <Using Include="TenantFlow.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\TenantFlow.Testing\TenantFlow.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Applies every module's EF Core migrations, connecting as the database owner role (ADR-0012).
+    The API and the worker never migrate; they connect as the non-owner application role.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TenantFlow.Migrator</RootNamespace>
+    <!-- Development only: overrides appsettings.Development.json, for example after changing deploy/compose/.env (ADR-0008). -->
+    <UserSecretsId>tenantflow-migrator-8f3a1c52-6d4e-4b7a-a1e9-0c5d2f7b3e64</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\Tenants\TenantFlow.Tenants.Infrastructure\TenantFlow.Tenants.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\IdentityAccess\TenantFlow.IdentityAccess.Infrastructure\TenantFlow.IdentityAccess.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Catalog\TenantFlow.Catalog.Infrastructure\TenantFlow.Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventory\TenantFlow.Inventory.Infrastructure\TenantFlow.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Orders\TenantFlow.Orders.Infrastructure\TenantFlow.Orders.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\TenantFlow.Notifications.Infrastructure\TenantFlow.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Payments\TenantFlow.Payments.Infrastructure\TenantFlow.Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Subscriptions\TenantFlow.Subscriptions.Infrastructure\TenantFlow.Subscriptions.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\ImportsExports\TenantFlow.ImportsExports.Infrastructure\TenantFlow.ImportsExports.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Audit\TenantFlow.Audit.Infrastructure\TenantFlow.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Operations\TenantFlow.Operations.Infrastructure\TenantFlow.Operations.Infrastructure.csproj" />
+    <!-- The scheduler's schema (ADR-0023): the Migrator owns its DDL like a module's. -->
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Scheduling\TenantFlow.BuildingBlocks.Scheduling.csproj" />
+  </ItemGroup>
+
+</Project>

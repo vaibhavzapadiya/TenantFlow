@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Test-support code shared by the test projects (telemetry capture now; database fixtures in M3). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Testing</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry" />
+  </ItemGroup>
+
+</Project>

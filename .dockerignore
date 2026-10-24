@@ -1,0 +1,17 @@
+# Deny by default (SPEC-0012 S3d): only what the image build needs enters the context, so a local secret such as
+# deploy/compose/.env, user-secrets or Terraform state can never be copied into an image layer.
+*
+
+!src/
+!Directory.Build.props
+!Directory.Packages.props
+!global.json
+!nuget.config
+!.editorconfig
+!deploy/certs/
+!deploy/keycloak/Dockerfile
+!deploy/identity/realms/production/
+
+# Local build output, even inside allowed folders.
+**/bin/
+**/obj/

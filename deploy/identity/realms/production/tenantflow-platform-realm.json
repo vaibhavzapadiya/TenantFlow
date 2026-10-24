@@ -1,0 +1,121 @@
+{
+  "realm": "tenantflow-platform",
+  "displayName": "TenantFlow platform operators",
+  "enabled": true,
+  "sslRequired": "all",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(14) and notUsername and passwordHistory(5)",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "browserFlow": "browser with required otp",
+  "roles": {
+    "realm": [
+      { "name": "platform-admin", "description": "Tenant lifecycle, first administrators, platform audit, revoking support grants (ADR-0027)." },
+      { "name": "support-operator", "description": "Opens its own time-limited support grants and reads the support views (ADR-0027)." }
+    ]
+  },
+  "requiredActions": [
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 5,
+      "config": {}
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 10,
+      "config": {}
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "browser with required otp",
+      "description": "Cookie, or username, password and OTP. OTP is required for every operator (PS-A17, ADR-0035).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-cookie", "authenticatorFlow": false, "requirement": "ALTERNATIVE", "priority": 10, "userSetupAllowed": false },
+        { "authenticatorFlow": true, "flowAlias": "browser with required otp forms", "requirement": "ALTERNATIVE", "priority": 20, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "browser with required otp forms",
+      "description": "Password, then OTP; an operator without an OTP credential must set one up before any token is issued.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-username-password-form", "authenticatorFlow": false, "requirement": "REQUIRED", "priority": 10, "userSetupAllowed": false },
+        { "authenticator": "auth-otp-form", "authenticatorFlow": false, "requirement": "REQUIRED", "priority": 20, "userSetupAllowed": false }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "tenantflow-platform-operator",
+      "name": "Platform operator tools",
+      "description": "Public client for operator tools: authorization code flow with PKCE and a loopback redirect (RFC 8252). No password grant, which would skip OTP.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["http://127.0.0.1/*"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://127.0.0.1/*"
+      },
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenantflow_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "tenantflow_roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

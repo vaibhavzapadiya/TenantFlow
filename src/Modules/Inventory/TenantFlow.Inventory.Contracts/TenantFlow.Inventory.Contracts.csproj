@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Inventory module's public surface for other modules (ADR-0002): stock reservations for orders (ADR-0020).
+    Interfaces and plain data only. No Domain, Application, or Infrastructure types.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Inventory.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

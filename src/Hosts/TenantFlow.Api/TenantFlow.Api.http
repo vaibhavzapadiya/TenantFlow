@@ -1,0 +1,161 @@
+# TenantFlow API walkthrough for the Visual Studio / Rider HTTP client (local development only).
+# Pick the "dev" environment (http-client.env.json), start the local stack and the API, then send the requests top to
+# bottom: each one reads the ids and tokens it needs from the responses above it. Tokens live 5 minutes; resend a login
+# request when a call answers 401. A deviating .env password goes in http-client.env.json.user (git-ignored).
+
+### Platform operator token (realm tenantflow-platform, role platform-admin)
+# @name operator
+POST {{keycloak}}/realms/tenantflow-platform/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=tenantflow-platform-dev-cli&username=dev-operator&password={{devUserPassword}}
+
+### Tenant user token (realm tenantflow)
+# @name user
+POST {{keycloak}}/realms/tenantflow/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=tenantflow-dev-cli&username=dev-user-a&password={{devUserPassword}}
+
+### Who am I: the subject the platform makes a tenant administrator below
+# @name me
+GET {{api}}/v1/me
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Platform: create a tenant
+# @name tenant
+POST {{api}}/v1/platform/tenants
+Authorization: Bearer {{operator.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "name": "Walkthrough tenant" }
+
+### Platform: make dev-user-a the tenant's first administrator
+POST {{api}}/v1/platform/tenants/{{tenant.response.body.$.id}}/admins
+Authorization: Bearer {{operator.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "subject": "{{me.response.body.$.subject}}" }
+
+### Platform: read, suspend, reactivate
+GET {{api}}/v1/platform/tenants/{{tenant.response.body.$.id}}
+Authorization: Bearer {{operator.response.body.$.access_token}}
+
+###
+POST {{api}}/v1/platform/tenants/{{tenant.response.body.$.id}}/suspend
+Authorization: Bearer {{operator.response.body.$.access_token}}
+
+###
+POST {{api}}/v1/platform/tenants/{{tenant.response.body.$.id}}/reactivate
+Authorization: Bearer {{operator.response.body.$.access_token}}
+
+### Platform audit
+GET {{api}}/v1/platform/audit?tenantId={{tenant.response.body.$.id}}&limit=20
+Authorization: Bearer {{operator.response.body.$.access_token}}
+
+### Me: memberships
+GET {{api}}/v1/me/memberships
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Tenant
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Members
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/members
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Products: create
+# @name product
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/products
+Authorization: Bearer {{user.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "sku": "WALK-001", "name": "Walkthrough product", "price": { "amount": 19.99, "currency": "EUR" } }
+
+### Products: list
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/products?limit=20
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Products: update (optimistic concurrency through If-Match)
+PUT {{api}}/v1/tenants/{{tenant.response.body.$.id}}/products/{{product.response.body.$.id}}
+Authorization: Bearer {{user.response.body.$.access_token}}
+If-Match: {{product.response.headers.ETag}}
+Content-Type: application/json
+
+{ "name": "Walkthrough product (renamed)", "price": { "amount": 24.99, "currency": "EUR" }, "status": "active" }
+
+### Stock: add 10
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/products/{{product.response.body.$.id}}/stock/adjustments
+Authorization: Bearer {{user.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "delta": 10, "reason": "walkthrough" }
+
+### Stock: read
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/products/{{product.response.body.$.id}}/stock
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Orders: create a draft
+# @name order
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/orders
+Authorization: Bearer {{user.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "lines": [ { "productId": "{{product.response.body.$.id}}", "quantity": 2 } ] }
+
+### Orders: submit
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/orders/{{order.response.body.$.id}}/submit
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Payments: pay with the simulator (sim_success, sim_decline, sim_timeout_then_success, ...)
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/orders/{{order.response.body.$.id}}/payments
+Authorization: Bearer {{user.response.body.$.access_token}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "paymentMethod": "sim_success" }
+
+### Payments: current payment
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/orders/{{order.response.body.$.id}}/payments/current
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Refunds: partial refund
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/orders/{{order.response.body.$.id}}/payments/current/refunds
+Authorization: Bearer {{user.response.body.$.access_token}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "amount": 5.00, "reason": "walkthrough" }
+
+### Plans: create
+# @name plan
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/plans
+Authorization: Bearer {{user.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "name": "Basic", "price": { "amount": 9.00, "currency": "EUR" }, "interval": "month", "trialDays": 0 }
+
+### Subscriptions: subscribe
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/subscriptions
+Authorization: Bearer {{user.response.body.$.access_token}}
+Content-Type: application/json
+
+{ "planId": "{{plan.response.body.$.id}}", "paymentMethod": "sim_success" }
+
+### Exports: products as a file
+# @name export
+POST {{api}}/v1/tenants/{{tenant.response.body.$.id}}/exports/products
+Authorization: Bearer {{user.response.body.$.access_token}}
+Idempotency-Key: {{$guid}}
+
+###
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/exports/{{export.response.body.$.id}}
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Tenant audit
+GET {{api}}/v1/tenants/{{tenant.response.body.$.id}}/audit?limit=20
+Authorization: Bearer {{user.response.body.$.access_token}}
+
+### Health (anonymous)
+GET {{api}}/health/ready

@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "API + Worker",
+    "Projects": [
+      {
+        "Path": "src\\Hosts\\TenantFlow.Api\\TenantFlow.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\\Hosts\\TenantFlow.Worker\\TenantFlow.Worker.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]

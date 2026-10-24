@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Operations module use cases: support grants and the read-only support views (ADR-0027). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Operations.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Operations.Domain\TenantFlow.Operations.Domain.csproj" />
+    <!-- Only contracts (ADR-0002): audit events, whether a tenant exists, and the two read-only views. -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <ProjectReference Include="..\..\ImportsExports\TenantFlow.ImportsExports.Contracts\TenantFlow.ImportsExports.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

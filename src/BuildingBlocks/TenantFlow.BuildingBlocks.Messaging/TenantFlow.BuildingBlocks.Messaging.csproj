@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The transactional outbox shared by publishing modules (ADR-0021): the row each module writes in its own schema, and
+    the broker-agnostic publisher that moves rows to an IMessageBus.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Messaging</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

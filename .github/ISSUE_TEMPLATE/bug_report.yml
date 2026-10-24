@@ -1,0 +1,63 @@
+name: Bug report
+description: Something does not work as documented.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. **Security problems must not be reported here**: follow
+        [SECURITY.md](../blob/main/.github/SECURITY.md) instead. Use synthetic data only; never paste real tokens,
+        passwords, personal data or the contents of `deploy/compose/.env`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The smallest set of steps, commands or requests that shows the problem.
+      placeholder: |
+        1. docker compose up -d --wait
+        2. POST /v1/tenants/{tenantId}/orders with ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Error messages, Problem Details responses or log lines. Remove anything secret first.
+      render: text
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Local setup (Docker Compose)
+        - Build or tests
+        - API / tenants and members
+        - Catalog or inventory
+        - Orders, payments, refunds or subscriptions
+        - Messaging or the Worker
+        - Imports and exports
+        - Observability
+        - Deployment (Docker images, Terraform, workflows)
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: Output of `git rev-parse --short HEAD`.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, `dotnet --version`, Docker setup (Docker Desktop or Docker inside WSL), and PowerShell version.
+      placeholder: Windows 11, .NET SDK 10.0.402, Docker 28 inside WSL, PowerShell 7.5

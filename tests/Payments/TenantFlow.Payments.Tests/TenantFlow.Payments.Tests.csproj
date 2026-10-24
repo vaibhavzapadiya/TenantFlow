@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fast unit tests for the Payments module's Domain and Application layers (blueprint section 15, layer 1):
+    the payment state table, the input rules and the provider adapters (over a fake HTTP handler), with no host,
+    no database and no network.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Payments.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Modules\Payments\TenantFlow.Payments.Application\TenantFlow.Payments.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\Modules\Payments\TenantFlow.Payments.Domain\TenantFlow.Payments.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\Modules\Payments\TenantFlow.Payments.Infrastructure\TenantFlow.Payments.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Catalog module's public surface for other modules (ADR-0002): interfaces, plain data, and the shared error
+    other modules answer "no such product" with. No Domain, Application, or Infrastructure types.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Catalog.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

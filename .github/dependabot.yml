@@ -1,0 +1,60 @@
+# Dependency updates arrive as small, reviewable pull requests that must pass CI.
+# The cooldown matches ADR-0003: new releases wait 14 days before adoption.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      xunit:
+        patterns: ["xunit*"]
+      microsoft-runtime-aligned:
+        patterns: ["Microsoft.AspNetCore.*", "Microsoft.Extensions.*"]
+      # EF Core and Npgsql release in lockstep; a half-upgraded pair fails at runtime, not at build.
+      data-access:
+        patterns: ["Microsoft.EntityFrameworkCore*", "Npgsql*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: docker-compose
+    directory: /deploy/compose
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Base images of the deployed images, pinned by digest (deploy/docker, deploy/keycloak). They are declared as ARG
+  # defaults; if Dependabot does not propose updates for them once GitHub is connected, they stay a reviewed manual bump.
+  - package-ecosystem: docker
+    directories:
+      - /deploy/docker
+      - /deploy/keycloak
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  # Terraform providers, pinned by each stack's .terraform.lock.hcl.
+  - package-ecosystem: terraform
+    directories:
+      - /deploy/terraform/bootstrap
+      - /deploy/terraform/shared
+      - /deploy/terraform/environment
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14

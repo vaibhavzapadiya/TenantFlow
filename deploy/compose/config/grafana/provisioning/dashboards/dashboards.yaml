@@ -1,0 +1,14 @@
+# Grafana dashboards (local observability profile, ADR-0029, SPEC-0010 S3). The JSON files in
+# deploy/observability/grafana/dashboards are the source: Grafana loads them read-only, so a change made in the UI cannot
+# be saved and the repository stays the only place to edit a dashboard.
+apiVersion: 1
+
+providers:
+  - name: tenantflow
+    folder: TenantFlow
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards/tenantflow

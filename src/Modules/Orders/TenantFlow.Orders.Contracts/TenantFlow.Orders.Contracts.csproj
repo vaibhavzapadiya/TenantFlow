@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Orders module's public surface for other modules (ADR-0002): the integration events it publishes (ADR-0021).
+    Plain data only. No Domain, Application, or Infrastructure types.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Orders.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

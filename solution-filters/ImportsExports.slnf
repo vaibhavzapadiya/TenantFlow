@@ -1,0 +1,19 @@
+{
+  "solution": {
+    "path": "..\\TenantFlow.sln",
+    "projects": [
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Abstractions\\TenantFlow.BuildingBlocks.Abstractions.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Messaging\\TenantFlow.BuildingBlocks.Messaging.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Persistence\\TenantFlow.BuildingBlocks.Persistence.csproj",
+      "src\\Modules\\Audit\\TenantFlow.Audit.Contracts\\TenantFlow.Audit.Contracts.csproj",
+      "src\\Modules\\Catalog\\TenantFlow.Catalog.Contracts\\TenantFlow.Catalog.Contracts.csproj",
+      "src\\Modules\\IdentityAccess\\TenantFlow.IdentityAccess.Contracts\\TenantFlow.IdentityAccess.Contracts.csproj",
+      "src\\Modules\\ImportsExports\\TenantFlow.ImportsExports.Application\\TenantFlow.ImportsExports.Application.csproj",
+      "src\\Modules\\ImportsExports\\TenantFlow.ImportsExports.Contracts\\TenantFlow.ImportsExports.Contracts.csproj",
+      "src\\Modules\\ImportsExports\\TenantFlow.ImportsExports.Domain\\TenantFlow.ImportsExports.Domain.csproj",
+      "src\\Modules\\ImportsExports\\TenantFlow.ImportsExports.Infrastructure\\TenantFlow.ImportsExports.Infrastructure.csproj",
+      "src\\Modules\\Tenants\\TenantFlow.Tenants.Contracts\\TenantFlow.Tenants.Contracts.csproj",
+      "tests\\ImportsExports\\TenantFlow.ImportsExports.Tests\\TenantFlow.ImportsExports.Tests.csproj"
+    ]
+  }
+}

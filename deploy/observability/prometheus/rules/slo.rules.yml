@@ -1,0 +1,134 @@
+# SLO recording rules (ADR-0030, SPEC-0010 criterion 9). One error ratio per SLO and window: 1 - good / total.
+# Generated with the SLO documents in docs/operations/slos; keep both in step. Targets live in the documents and in
+# tenantflow:slo_objective below.
+groups:
+  - name: slo-catalog-read
+    rules:
+      - record: tenantflow:slo_error_ratio:rate5m
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?", le=~"0.5(\\.0)?", http_response_status_code!~"5.."}[5m]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?"}[5m])))
+        labels:
+          slo: catalog_read
+      - record: tenantflow:slo_error_ratio:rate30m
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?", le=~"0.5(\\.0)?", http_response_status_code!~"5.."}[30m]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?"}[30m])))
+        labels:
+          slo: catalog_read
+      - record: tenantflow:slo_error_ratio:rate1h
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?", le=~"0.5(\\.0)?", http_response_status_code!~"5.."}[1h]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?"}[1h])))
+        labels:
+          slo: catalog_read
+      - record: tenantflow:slo_error_ratio:rate6h
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?", le=~"0.5(\\.0)?", http_response_status_code!~"5.."}[6h]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/products/?(\\{[a-zA-Z]+(:[a-z]+)?\\})?"}[6h])))
+        labels:
+          slo: catalog_read
+      - record: tenantflow:slo_objective
+        expr: vector(0.995)
+        labels:
+          slo: catalog_read
+  - name: slo-order-submission
+    rules:
+      - record: tenantflow:slo_error_ratio:rate5m
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?", le=~"1(\\.0)?", http_response_status_code!~"5.."}[5m]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?"}[5m])))
+        labels:
+          slo: order_submission
+      - record: tenantflow:slo_error_ratio:rate30m
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?", le=~"1(\\.0)?", http_response_status_code!~"5.."}[30m]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?"}[30m])))
+        labels:
+          slo: order_submission
+      - record: tenantflow:slo_error_ratio:rate1h
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?", le=~"1(\\.0)?", http_response_status_code!~"5.."}[1h]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?"}[1h])))
+        labels:
+          slo: order_submission
+      - record: tenantflow:slo_error_ratio:rate6h
+        expr: >-
+          1 - (sum(rate(http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?", le=~"1(\\.0)?", http_response_status_code!~"5.."}[6h]))) / (sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route=~"/v1/tenants/\\{[a-zA-Z]+(:[a-z]+)?\\}/orders/\\{[a-zA-Z]+(:[a-z]+)?\\}/submit/?"}[6h])))
+        labels:
+          slo: order_submission
+      - record: tenantflow:slo_objective
+        expr: vector(0.99)
+        labels:
+          slo: order_submission
+  - name: slo-payment-resolution
+    rules:
+      - record: tenantflow:slo_error_ratio:rate5m
+        expr: >-
+          1 - (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed"}[5m]))) / (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed|requires_review"}[5m])))
+        labels:
+          slo: payment_resolution
+      - record: tenantflow:slo_error_ratio:rate30m
+        expr: >-
+          1 - (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed"}[30m]))) / (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed|requires_review"}[30m])))
+        labels:
+          slo: payment_resolution
+      - record: tenantflow:slo_error_ratio:rate1h
+        expr: >-
+          1 - (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed"}[1h]))) / (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed|requires_review"}[1h])))
+        labels:
+          slo: payment_resolution
+      - record: tenantflow:slo_error_ratio:rate6h
+        expr: >-
+          1 - (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed"}[6h]))) / (sum(increase(tenantflow_payments_attempts_total{outcome=~"succeeded|failed|requires_review"}[6h])))
+        labels:
+          slo: payment_resolution
+      - record: tenantflow:slo_objective
+        expr: vector(0.99)
+        labels:
+          slo: payment_resolution
+  - name: slo-export-completion
+    rules:
+      - record: tenantflow:slo_error_ratio:rate5m
+        expr: >-
+          1 - (sum(increase(tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="succeeded", le=~"250(\\.0)?"}[5m]))) / (sum(increase(tenantflow_imports_exports_job_duration_seconds_count{kind="export"}[5m])))
+        labels:
+          slo: export_completion
+      - record: tenantflow:slo_error_ratio:rate30m
+        expr: >-
+          1 - (sum(increase(tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="succeeded", le=~"250(\\.0)?"}[30m]))) / (sum(increase(tenantflow_imports_exports_job_duration_seconds_count{kind="export"}[30m])))
+        labels:
+          slo: export_completion
+      - record: tenantflow:slo_error_ratio:rate1h
+        expr: >-
+          1 - (sum(increase(tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="succeeded", le=~"250(\\.0)?"}[1h]))) / (sum(increase(tenantflow_imports_exports_job_duration_seconds_count{kind="export"}[1h])))
+        labels:
+          slo: export_completion
+      - record: tenantflow:slo_error_ratio:rate6h
+        expr: >-
+          1 - (sum(increase(tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="succeeded", le=~"250(\\.0)?"}[6h]))) / (sum(increase(tenantflow_imports_exports_job_duration_seconds_count{kind="export"}[6h])))
+        labels:
+          slo: export_completion
+      - record: tenantflow:slo_objective
+        expr: vector(0.99)
+        labels:
+          slo: export_completion
+  - name: slo-event-delivery
+    rules:
+      - record: tenantflow:slo_error_ratio:rate5m
+        expr: >-
+          1 - (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate"}[5m]))) / (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate|dead_lettered"}[5m])))
+        labels:
+          slo: event_delivery
+      - record: tenantflow:slo_error_ratio:rate30m
+        expr: >-
+          1 - (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate"}[30m]))) / (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate|dead_lettered"}[30m])))
+        labels:
+          slo: event_delivery
+      - record: tenantflow:slo_error_ratio:rate1h
+        expr: >-
+          1 - (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate"}[1h]))) / (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate|dead_lettered"}[1h])))
+        labels:
+          slo: event_delivery
+      - record: tenantflow:slo_error_ratio:rate6h
+        expr: >-
+          1 - (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate"}[6h]))) / (sum(increase(tenantflow_messaging_consumed_total{outcome=~"processed|duplicate|dead_lettered"}[6h])))
+        labels:
+          slo: event_delivery
+      - record: tenantflow:slo_objective
+        expr: vector(0.999)
+        labels:
+          slo: event_delivery

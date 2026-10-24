@@ -1,0 +1,4299 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-10-24",
+  "project": {
+    "name": "TenantFlow",
+    "summary": "Multi-tenant B2B SaaS backend in .NET, built as a modular monolith through gated milestones and vertical slices.",
+    "blueprint": "docs/PROJECT_BLUEPRINT.md",
+    "roadmap": "docs/roadmap.md"
+  },
+  "nextStep": {
+    "title": "M12 started: choose the cloud",
+    "detail": "M12 runs before M11 (your decision). Decide Open Decision 2 (AWS or GCP) and Open Decision 1 (environments and budget), then approve SPEC-0012. Nothing is applied until you have credentials and say yes."
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Engineering foundation",
+      "priority": "P0",
+      "goal": "A clean checkout builds, checks itself, and tests itself the same way on every machine and in CI.",
+      "dependsOn": [],
+      "decisions": [
+        10
+      ],
+      "specs": [],
+      "guide": "docs/milestones/M0-engineering-foundation.md",
+      "exitCriteria": [
+        {
+          "id": "M0-G1",
+          "text": "A clean checkout builds",
+          "status": "verified",
+          "evidence": "Verified locally on a clean copy and on the real repository with the pinned SDK (verify.ps1). Not yet run in GitHub Actions (CI on hold)."
+        },
+        {
+          "id": "M0-G2",
+          "text": "Formatting and analyzer checks and a sample test pass",
+          "status": "verified",
+          "evidence": "verify.ps1: format check clean, 0 warnings, host composition tests pass; six break-it checks failed as expected."
+        }
+      ],
+      "slices": [
+        {
+          "id": "M0-S1",
+          "title": "Pinned SDK, central package management, lock files",
+          "status": "verified",
+          "commit": "17d92cc",
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "scripts/verify.ps1: locked restore, Release build, tests"
+            ],
+            "proofs": [
+              "Version change without lock update fails locked restore (NU1004)"
+            ]
+          }
+        },
+        {
+          "id": "M0-S2",
+          "title": "Analyzers and formatting",
+          "status": "verified",
+          "commit": "17d92cc",
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "dotnet format --verify-no-changes",
+              "Release build with warnings as errors"
+            ],
+            "proofs": [
+              "Unused using fails the build (IDE0005)",
+              "Block-scoped namespace fails the format check (IDE0161)",
+              "Trailing whitespace fails the format check"
+            ]
+          }
+        },
+        {
+          "id": "M0-S3",
+          "title": "API host shell with host-composition tests",
+          "status": "verified",
+          "commit": "17d92cc",
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "dotnet test: 3 host composition tests"
+            ],
+            "proofs": [
+              "Removing ValidateScopes fails its test",
+              "Removing ValidateOnBuild fails its test"
+            ]
+          }
+        },
+        {
+          "id": "M0-S4",
+          "title": "CI skeleton and local verify script",
+          "status": "tested",
+          "commit": "17d92cc",
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "scripts/verify.ps1 (same steps as CI)"
+            ],
+            "proofs": []
+          },
+          "note": "The GitHub Actions workflow has never run: the repository has no remote yet (on hold by the owner). Verified becomes possible after the first CI run."
+        },
+        {
+          "id": "M0-S5",
+          "title": "ADR process, template, and first ADRs",
+          "status": "verified",
+          "commit": "17d92cc",
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "ADR-0001 to ADR-0004 written and accepted"
+            ],
+            "proofs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "M1",
+      "title": "Local platform",
+      "priority": "P0",
+      "goal": "One documented command starts local dependencies; the API and worker run with health endpoints, validated configuration, and correlated telemetry.",
+      "dependsOn": [
+        "M0"
+      ],
+      "decisions": [
+        13,
+        14
+      ],
+      "specs": [
+        "0001"
+      ],
+      "guide": "docs/milestones/M1-local-platform.md",
+      "exitCriteria": [
+        {
+          "id": "M1-G1",
+          "text": "One documented command starts the dependencies",
+          "status": "verified",
+          "evidence": "scripts/dev.ps1 up -Observability: 6 containers up and healthy (fresh run at the milestone gate)."
+        },
+        {
+          "id": "M1-G2",
+          "text": "API and worker emit correlated telemetry (per host; cross-process in M5, as approved)",
+          "status": "verified",
+          "evidence": "dev.ps1 smoke 7/7; fresh API trace in Tempo; trace-correlated logs from both hosts in Loki; tests prove log and span IDs match."
+        }
+      ],
+      "slices": [
+        {
+          "id": "M1-S1",
+          "title": "Compose core (PostgreSQL), .env.example, dev script, CI compose validation",
+          "status": "verified",
+          "commit": "ad9e147",
+          "criteria": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "dev.ps1 up: healthy in 43 s",
+              "dev.ps1 validate",
+              "dev.ps1 reset paths"
+            ],
+            "proofs": [
+              "Port published on all interfaces fails validate",
+              "Profiled service on all interfaces fails validate"
+            ]
+          }
+        },
+        {
+          "id": "M1-S2",
+          "title": "API health, options validation, PostgreSQL readiness, user-secrets",
+          "status": "verified",
+          "commit": "cd2fbc2",
+          "criteria": [
+            6,
+            7,
+            8,
+            9
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1: 6/6 tests",
+              "Live: ready 200 → 503 → 200 as PostgreSQL stopped and started"
+            ],
+            "proofs": [
+              "Liveness running checks fails",
+              "Readiness without the ready tag fails",
+              "Removing ValidateOnStart fails",
+              "Response with check details fails"
+            ]
+          }
+        },
+        {
+          "id": "M1-S3",
+          "title": "Worker host, heartbeat, worker health endpoints",
+          "status": "verified",
+          "commit": "a5cd39b",
+          "criteria": [
+            10,
+            11,
+            12,
+            13
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1: 17/17 tests",
+              "Worker tests 3 runs in a row",
+              "Live worker on :5081"
+            ],
+            "proofs": [
+              "7 break-it proofs, all failing at assertions"
+            ]
+          }
+        },
+        {
+          "id": "M1-S4",
+          "title": "OpenTelemetry traces, metrics, and logs in both hosts",
+          "status": "verified",
+          "commit": "9614e1f",
+          "criteria": [
+            14,
+            15,
+            16
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1: 20/20 tests",
+              "API suite 8 runs, worker suite 3 runs"
+            ],
+            "proofs": [
+              "Wrong namespace and renamed attribute fail",
+              "Log outside its span fails",
+              "No OpenTelemetry logging fails"
+            ]
+          }
+        },
+        {
+          "id": "M1-S5",
+          "title": "Observability profile and dev smoke",
+          "status": "verified",
+          "commit": "8cddfb8",
+          "criteria": [
+            5,
+            17
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "dev.ps1 smoke: 7/7",
+              "API served 20/20 requests with the collector stopped"
+            ],
+            "proofs": [
+              "Worker stopped: smoke exits 1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Identity and tenant boundary",
+      "priority": "P0",
+      "goal": "Authenticated users act only within tenants they belong to; tenant context fails closed.",
+      "dependsOn": [
+        "M1"
+      ],
+      "decisions": [
+        3,
+        11,
+        16,
+        20
+      ],
+      "specs": [
+        "0002"
+      ],
+      "guide": "docs/milestones/M2-identity-and-tenant-boundary.md",
+      "exitCriteria": [
+        {
+          "id": "M2-G1",
+          "text": "Positive and negative tenant isolation tests pass for representative resources",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at c899cc5: IdentityAccess 67, Tenants 77, Worker 12, API 123, Database 100, 0 warnings; IsolationMatrixTests walks every tenant route as eight kinds of caller; progress.ps1 -Verify, dev.ps1 validate, and dev.ps1 smoke 10/10 (fresh at the milestone gate); four isolation guards re-proven."
+        },
+        {
+          "id": "M2-G2",
+          "text": "Open decisions due by M2 are closed by accepted ADRs",
+          "status": "verified",
+          "evidence": "Decisions 3, 11, 16, 20 closed by ADR-0009 to 0012; 15 and 17 closed by ADR-0013 and ADR-0014, accepted by you on 2026-10-21 together with ADR-0015 to 0018."
+        }
+      ],
+      "slices": [
+        {
+          "id": "M2-S1",
+          "title": "Persistence foundation: EF Core, Migrator, module schemas, roles",
+          "status": "verified",
+          "commit": "b57d979",
+          "criteria": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1 -Database: API 8/8, Worker 12/12, Database 20/20, no leftover test database",
+              "Database tests 3 runs in a row: 20/20 each",
+              "Live: dev.ps1 up provisions roles; Migrator applies 1 migration per module, then 0; API ready 200 as tenantflow_app"
+            ],
+            "proofs": [
+              "13 break-it proofs failing at assertions (module skipped, foreign schema, cross-schema FK, BYPASSRLS, CREATE on schema, default privileges removed, instructions removed, run id unchecked, password logged, key not logged, unreachable not translated)",
+              "No proof: second-run idempotency (EF Core history) and owns-nothing (no code path)"
+            ]
+          }
+        },
+        {
+          "id": "M2-S2",
+          "title": "OIDC JWT validation, fallback policy, GET /me",
+          "status": "verified",
+          "commit": "2d63177",
+          "criteria": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1 -Database: API 29/29, Worker 12/12, Database 20/20",
+              "API tests 3 runs in a row: 29/29 each",
+              "Live (Development): ready 200; /me and an unknown path 401 problem+json with WWW-Authenticate: Bearer"
+            ],
+            "proofs": [
+              "Issuer, audience, lifetime, signed-token, subject, allow-list (RS512), and signature checks each fail their cases when disabled",
+              "Default challenge fails the Problem Details assertion; WriteAsync returns 500 for Accept: text/html",
+              "No ValidateOnStart, no loopback rule, permissive fallback, and health without AllowAnonymous each fail"
+            ]
+          }
+        },
+        {
+          "id": "M2-S3",
+          "title": "Keycloak in Compose for local development",
+          "status": "verified",
+          "commit": "63d53d1",
+          "criteria": [
+            10,
+            11
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "dev.ps1 up: Keycloak 26.7.5 healthy on 127.0.0.1:8080, realm imported, dev user password set",
+              "dev.ps1 smoke: 8/8, 3 runs in a row (token from Keycloak accepted on /me)",
+              "dev.ps1 validate: images pinned, realm synthetic",
+              "verify.ps1 -Database: API 29/29, Worker 12/12, Database 20/20"
+            ],
+            "proofs": [
+              "No audience mapper: smoke fails on /me",
+              "Unpinned image, credential in realm, real-looking user: validate fails"
+            ]
+          }
+        },
+        {
+          "id": "M2-S4",
+          "title": "Tenants module and platform boundary: tenant lifecycle",
+          "status": "verified",
+          "commit": "4d130d6",
+          "criteria": [
+            9,
+            24,
+            25
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1 -Database: API 36/36, Worker 12/12, Database 34/34, 0 error-level logs",
+              "Database and API suites 3 runs in a row",
+              "dev.ps1 smoke 9/9 (Keycloak operator token reaches /platform, refused on /me)",
+              "dev.ps1 validate: both realms synthetic"
+            ],
+            "proofs": [
+              "Platform policy on the tenant scheme, /me accepting the platform scheme, and no operator-role requirement each fail",
+              "Validator skipped, transition guard removed, audit append removed, concurrency token removed, REVOKE removed, endpoint filter removed: each fails its tests"
+            ]
+          }
+        },
+        {
+          "id": "M2-S5a",
+          "title": "IdentityAccess: memberships, roles to permissions, membership audit, last-administrator rule, my memberships",
+          "status": "verified",
+          "commit": "649a9c0",
+          "criteria": [
+            3,
+            16,
+            19,
+            20,
+            21
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1 -Database: IdentityAccess 51/51, Tenants 77/77, Worker 12/12, API 114/114, Database 73/73, 0 warnings",
+              "Database suite 3 runs in a row: 73/73 each",
+              "Concurrent demotion test: 20 rounds per run"
+            ],
+            "proofs": [
+              "Unit: subject control characters allowed, case-insensitive role names, issuer length cap, inverted last-administrator rule: each fails its tests",
+              "Database: either last-administrator check removed, advisory lock removed, tenant filter removed from the lookup, tenant status ignored, issuer ignored, removed memberships listed, either audit append removed, audit time from UtcNow, REVOKE removed, unique filter removed, role check removed, audit committed separately: each fails its tests"
+            ]
+          }
+        },
+        {
+          "id": "M2-S5b",
+          "title": "First tenant administrator through the platform boundary",
+          "status": "verified",
+          "commit": "467a8b1",
+          "criteria": [
+            24
+          ],
+          "verification": {
+            "date": "2026-10-19",
+            "ran": [
+              "verify.ps1 -Database: IdentityAccess 51/51, Tenants 77/77, Worker 12/12, API 114/114, Database 83/83, 0 warnings",
+              "Database suite 3 runs in a row after a rebuild: 83/83 each"
+            ],
+            "proofs": [
+              "Tenant check removed, suspended tenants allowed, wrong not-found error, operator policy weakened, forged member issuer, wrong audit actor, wrong role: each fails its tests"
+            ]
+          }
+        },
+        {
+          "id": "M2-S6",
+          "title": "Tenant context that fails closed and tenant-route policies",
+          "status": "verified",
+          "commit": "c003712",
+          "criteria": [
+            12,
+            13,
+            14,
+            15,
+            17,
+            18
+          ],
+          "verification": {
+            "date": "2026-10-20",
+            "ran": [
+              "verify.ps1 -Database: IdentityAccess 67/67, Tenants 77/77, Worker 12/12, API 114/114, Database 99/99, 0 warnings",
+              "Database suite 3 runs in a row after a rebuild"
+            ],
+            "proofs": [
+              "Unit: suspended tenant reported as not found, permission unchecked, context settable twice, context that returns empty values when unset: each fails its tests",
+              "Database: access filter removed, tenant condition removed from the membership lookup, issuer ignored, member list for the wrong tenant, add route weakened to a read permission, wrong audit actor, suspended reported as not found, permission unchecked: each fails its tests"
+            ]
+          }
+        },
+        {
+          "id": "M2-S7",
+          "title": "Cross-tenant isolation matrix and route-table test (gate)",
+          "status": "verified",
+          "commit": "c899cc5",
+          "criteria": [
+            22,
+            23
+          ],
+          "verification": {
+            "date": "2026-10-20",
+            "ran": [
+              "verify.ps1 -Database: IdentityAccess 67/67, Tenants 77/77, Worker 12/12, API 123/123, Database 100/100, 0 warnings",
+              "Database and API suites 3 runs in a row after a rebuild"
+            ],
+            "proofs": [
+              "API: denial not counted, extra label, wrong reason, forbidden not counted, token built into the reason, /me made anonymous, permission metadata removed: each fails its tests",
+              "Database: tenant-route denial not counted, permission metadata removed: each fails the isolation matrix"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "First vertical slice: catalog and inventory",
+      "priority": "P1",
+      "goal": "Tenant-scoped catalog and inventory reads and writes, end to end, against real PostgreSQL.",
+      "dependsOn": [
+        "M2"
+      ],
+      "decisions": [
+        15,
+        17,
+        21
+      ],
+      "specs": [
+        "0003"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M3-G1",
+          "text": "API contract, database constraints, integration tests, and OpenAPI docs pass",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database and progress.ps1 -Verify at 1d2c97a; gate break-it checks: cross-tenant, no oversell, forced RLS"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M3-S1",
+          "title": "Row-level security on the first tenant-owned table (ADR-0011, ADR-0019 Proposed)",
+          "status": "verified",
+          "commit": "b4865db",
+          "criteria": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Database 117/117 (RowLevelSecurityTests 4), 0 warnings"
+            ],
+            "proofs": [
+              "Policy without nullif: the no-tenant and pooled-leak tests fail",
+              "Policy USING (true): isolation, no-tenant and pooled-leak tests fail",
+              "FORCE removed: the forced-RLS test fails"
+            ]
+          }
+        },
+        {
+          "id": "M3-S2",
+          "title": "Catalog products: use cases, endpoints, tenant-aware constraints, ETag, keyset paging; structure cleanup and architecture tests",
+          "status": "verified",
+          "commit": "01ac870",
+          "criteria": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            17,
+            19
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Database 124/124, Catalog unit tests 7/7, 0 warnings",
+              "After the structure cleanup: verify.ps1 -Database all checks passed; Architecture 5/5, Api 123/123, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Worker 12/12, Database 124/124"
+            ],
+            "proofs": [
+              "A Catalog.Infrastructure reference to Tenants.Domain fails the module-boundary test",
+              "Only the application tenant filter removed, or only the RLS policy removed: cross-tenant tests still pass (two controls); both removed: they fail",
+              "RLS tenant context not set: every product request fails closed",
+              "Unique SKU index removed; version compare removed; archived made visible to customers: each fails its test"
+            ]
+          }
+        },
+        {
+          "id": "M3-S3",
+          "title": "Inventory stock balances and adjustments",
+          "status": "verified",
+          "commit": "4012deb",
+          "criteria": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 123/123, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Architecture 5/5, Worker 12/12, Database 134/134",
+              "StockEndpointTests 3 runs in a row: 6/6 each"
+            ],
+            "proofs": [
+              "Conditional update removed (CHECK kept): negative and concurrency tests fail",
+              "Conditional update and CHECK removed: negative and concurrency tests fail",
+              "Catalog-contract existence check removed: unknown-product and cross-tenant tests fail"
+            ]
+          }
+        },
+        {
+          "id": "M3-S4",
+          "title": "OpenAPI document and snapshot contract test, Testcontainers CI path",
+          "status": "verified",
+          "commit": "1d2c97a",
+          "criteria": [
+            18,
+            20
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Architecture 5/5, Worker 12/12, Database 134/134"
+            ],
+            "proofs": [
+              "Renaming nextCursor fails the snapshot test",
+              "Removing the boundary problem metadata fails both contract tests"
+            ],
+            "notVerified": [
+              "Testcontainers path: runs only in CI (Open Decision 21), and CI is on hold"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "Order and inventory consistency",
+      "priority": "P1",
+      "goal": "Orders reserve stock without overselling; illegal state transitions are rejected.",
+      "dependsOn": [
+        "M3"
+      ],
+      "decisions": [],
+      "specs": [
+        "0004"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M4-G1",
+          "text": "Concurrent last-item test proves no oversell; illegal state transitions are rejected",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database and progress.ps1 -Verify at 70b1d3f; gate break-it checks: no oversell, illegal transitions, cross-tenant orders"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M4-S1",
+          "title": "Inventory reservations: reserved column, reservation rows, Inventory.Contracts (ADR-0020 Proposed)",
+          "status": "verified",
+          "commit": "d0783e2",
+          "criteria": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            14
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Database 143/143, 0 warnings",
+              "StockReservationTests 3 runs in a row: 7/7 each"
+            ],
+            "proofs": [
+              "Reservation condition and CHECK removed: last-unit and all-or-none tests fail",
+              "Idempotency guard removed: repeat and concurrent same-order tests fail",
+              "Release not limited to held rows: repeat test fails (CHECK violation)",
+              "Adjustment condition back to >= 0: below-reserved test fails (500, not 409)"
+            ]
+          }
+        },
+        {
+          "id": "M4-S2",
+          "title": "Orders module: aggregate and state table, create/get/replace lines, snapshot, ETag",
+          "status": "verified",
+          "commit": "46f6343",
+          "criteria": [
+            6,
+            7,
+            8,
+            13,
+            14,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 5/5, Worker 12/12, Database 152/152, 0 warnings"
+            ],
+            "proofs": [
+              "Ownership removed from the read check: other-customer test fails",
+              "Ownership removed from the edit check: other-customer test fails",
+              "Store tenant filter and RLS policy both removed: cross-tenant test fails",
+              "EditLines state check removed: past-draft edit test fails",
+              "Version compare removed in service and store: ETag test fails"
+            ]
+          }
+        },
+        {
+          "id": "M4-S3",
+          "title": "Submit and cancel, recovery by repetition, concurrent last-item test",
+          "status": "verified",
+          "commit": "bf84c89",
+          "criteria": [
+            5,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 5/5, Worker 12/12, Database 160/160, 0 warnings",
+              "OrderLifecycleTests 3 runs in a row: 8/8 each"
+            ],
+            "proofs": [
+              "Reservation condition and CHECK removed: 20-way last-item and submit tests fail",
+              "Cancel allowed from any state: illegal-transition test fails",
+              "Transition not conditional on the expected state: cancel-vs-submit race test fails",
+              "Release removed from cancel: cancel, recovery and admin-cancel tests fail",
+              "Explicit submit state check alone removed: illegal-transition test still passes (domain NextOrThrow also refuses)"
+            ]
+          }
+        },
+        {
+          "id": "M4-R1",
+          "title": "Code-review fixes: reservation repeat checks, version-guarded submit, shared product limits and validation helper, ETag cleanup",
+          "status": "verified",
+          "commit": "70b1d3f",
+          "criteria": [
+            3,
+            11
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 6/6, Worker 12/12, Database 162/162, 0 warnings",
+              "OrderLifecycleTests 3 runs: 9/9 each; StockReservationTests 3 runs: 8/8 each"
+            ],
+            "proofs": [
+              "Every repeat answered reserved: repeat-for-other-lines/after-release test fails",
+              "Version condition removed from the Draft transition: stale-version test fails",
+              "ProductLimits.NameMaxLength widened without migrations: pending-model-changes test fails"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M5",
+      "title": "Messaging foundation",
+      "priority": "P1",
+      "goal": "Reliable cross-module messaging with a transactional outbox and idempotent consumers.",
+      "dependsOn": [
+        "M4"
+      ],
+      "decisions": [
+        4
+      ],
+      "specs": [
+        "0005"
+      ],
+      "guide": "docs/milestones/M5-messaging-foundation.md",
+      "exitCriteria": [
+        {
+          "id": "M5-G1",
+          "text": "Duplicate publication and consumption tests pass; backlog and oldest-message age are observable",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at 32fab40, progress.ps1 -Verify at 6eb3e98; gate break-it checks: duplicate publication (lease), duplicate consumption (processed key), cross-tenant consumer, transactional outbox; backlog and age gauges asserted with MeterCapture"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M5-S1",
+          "title": "Transactional outbox: Orders writes order.reserved.v1 and order.cancelled.v1 in the transition transaction",
+          "status": "verified",
+          "commit": "7431efb",
+          "criteria": [
+            1,
+            2,
+            3
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 6/6, Worker 12/12, Database 165/165, 0 warnings"
+            ],
+            "proofs": [
+              "Outbox insert without the changed == 1 guard: lost-update test fails",
+              "Outbox insert after the commit: rollback test fails (state change persists)",
+              "Reserved event written on rejection too: reserve/cancel/reject test fails"
+            ]
+          }
+        },
+        {
+          "id": "M5-S2",
+          "title": "RabbitMQ in Compose; Worker publisher with leases, confirms, cleanup; backlog and age metrics; duplicate publication",
+          "status": "verified",
+          "commit": "152b830",
+          "criteria": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 6/6, Worker 13/13, Database 171/171, 0 warnings",
+              "OutboxPublisherTests 3 runs in a row: 6/6 each"
+            ],
+            "proofs": [
+              "Lease condition removed: second-publisher and duplicate-publication tests fail",
+              "Lease never expiring: duplicate-publication test fails",
+              "Unconfirmed message marked published: broker-down test fails",
+              "Claim limit widened: batch test fails",
+              "Cleanup also deleting pending rows: cleanup test fails",
+              "Broker readiness check removed: Worker readiness test fails"
+            ]
+          }
+        },
+        {
+          "id": "M5-S3",
+          "title": "Notifications module and idempotent consumer; duplicate consumption; cross-tenant; trace propagation",
+          "status": "verified",
+          "commit": "416cdad",
+          "criteria": [
+            9,
+            10,
+            13,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 6/6, Worker 13/13, Database 178/178, 0 warnings",
+              "NotificationConsumerTests 3 runs in a row: 4/4 each"
+            ],
+            "proofs": [
+              "Processed-message check bypassed: duplicate-through-broker and concurrent-delivery tests fail",
+              "First message's tenant reused for later ones: cross-tenant test fails",
+              "Consumer span parent dropped: trace test fails"
+            ]
+          }
+        },
+        {
+          "id": "M5-S4",
+          "title": "Retry queues, dead-letter path, consumed counters, replay runbook",
+          "status": "verified",
+          "commit": "7f47bc6",
+          "criteria": [
+            11,
+            12,
+            14
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 6/6, Worker 13/13, Database 181/181, 0 warnings",
+              "DeadLetterTests 3 runs in a row: 3/3 each"
+            ],
+            "proofs": [
+              "Invalid messages treated as transient: dead-letter reason test fails",
+              "Retry limit off by one: five-retries dead-letter test fails"
+            ]
+          }
+        },
+        {
+          "id": "M5-R1",
+          "title": "Review fixes: connection recovery kept, refused outbox rows deferred with backoff, live age gauge, outbox-access architecture test, batch confirms, consumer cleanups",
+          "status": "verified",
+          "commit": "b29ec81",
+          "criteria": [
+            6,
+            7,
+            8,
+            9,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "verify.ps1 -Database: all checks passed; Api 125/125, IdentityAccess 67/67, Tenants 77/77, Catalog 7/7, Inventory 5/5, Orders 6/6, Architecture 7/7, Worker 13/13, Database 183/183, 0 warnings",
+              "NotificationConsumerTests and OutboxPublisherTests 3 runs in a row: 5/5 and 7/7 each"
+            ],
+            "proofs": [
+              "Recovering connection replaced: reconnection test fails",
+              "Refused row released at once: backoff and broker-down tests fail",
+              "Age frozen at refresh: metrics test fails",
+              "Outbox query planted in OrderService, and OrderStore not allowed: outbox-access test fails"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M6",
+      "title": "Payment workflow",
+      "priority": "P1",
+      "goal": "Sandbox payments with idempotency, verified webhooks, and reconciliation of unknown outcomes.",
+      "dependsOn": [
+        "M5"
+      ],
+      "decisions": [
+        12
+      ],
+      "specs": [
+        "0006"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M6-G1",
+          "text": "Timeout/unknown outcomes and duplicate or out-of-order webhooks recover safely",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at 81fc3a7 (unit 320/320, Database 217/217, 0 warnings); gate break-it checks: timeout as decline, reconciliation never escalating, webhook dedupe, cross-customer payment, plus 6 deferred proofs (card filter, foreign events, live key, simulator switch, raw-byte signature)"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M6-S1",
+          "title": "Payments module, simulator, create with idempotency keys, unknown on timeout, cancel guard",
+          "status": "verified",
+          "commit": "d8aa882",
+          "criteria": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Payments.Tests 4/4, Architecture 7/7, Api 125/125 (OpenAPI snapshot regenerated, additive), Orders 6/6",
+              "db-tests: PaymentEndpointTests 9/9 (after proofs), RowLevelSecurityTests 6/6, SchemaOwnershipTests 8/8, RolePrivilegeTests 18/18, IsolationMatrixTests 1/1, OrderLifecycleTests 9/9, OrderEndpointTests 6/6, OrderOutboxTests 3/3, MigratorTests 2/2"
+            ],
+            "proofs": [
+              "Stored key never consulted: replay test fails",
+              "Request hash not compared: replay test fails (no 422)",
+              "Hash without the caller: replay test fails (another customer replays)",
+              "Unfinished key not refused: in-progress test fails",
+              "Unique (tenant, order) payment removed: second-key test fails",
+              "Cancel ignores a begun payment: store seam test fails",
+              "Ownership not checked before begin: cross-customer test fails",
+              "Payments not under RLS: RowLevelSecurityTests fails"
+            ]
+          }
+        },
+        {
+          "id": "M6-S2",
+          "title": "Signed webhooks: signature, timestamp, dedupe, tenant resolution, state table",
+          "status": "verified",
+          "commit": "3220429",
+          "criteria": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 125/125 (route table: webhook route anonymous; OpenAPI snapshot additive), Architecture 7/7, Payments.Tests 4/4",
+              "db-tests: PaymentWebhookTests 5/5, PaymentEndpointTests 9/9, RowLevelSecurityTests 6/6 (11 forced tables), SchemaOwnershipTests 8/8"
+            ],
+            "proofs": [
+              "Event id not deduplicated: duplicate test fails",
+              "Provider reference not compared: mismatched-payment test fails",
+              "Webhook events not under RLS: RowLevelSecurityTests fails",
+              "Signature not compared: forged/tampered test fails",
+              "Timestamp tolerance ignored: stale/future test fails",
+              "Event written without a status change: duplicate test fails (second event)"
+            ]
+          }
+        },
+        {
+          "id": "M6-S3",
+          "title": "Order saga: payment states in Orders, payment-events consumer, release on failure",
+          "status": "verified",
+          "commit": "f79b551",
+          "criteria": [
+            11
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "IdentityAccess 68/68, Orders 6/6, Architecture 7/7, Worker 13/13",
+              "db-tests: OrderPaymentSagaTests 4/4 three runs in a row, RowLevelSecurityTests 6/6 (12 forced tables), OrderLifecycleTests 9/9, OrderOutboxTests 3/3"
+            ],
+            "proofs": [
+              "Message id not deduplicated: duplicate test fails",
+              "No release on redelivery: crash-before-release test fails",
+              "Release on any failure event: paid order loses its stock, the out-of-order test fails",
+              "Processed messages not under RLS: RowLevelSecurityTests fails"
+            ]
+          }
+        },
+        {
+          "id": "M6-S4",
+          "title": "Workflow timers, reconciliation, review escalation, stuck-order recovery, unpaid expiry",
+          "status": "verified",
+          "commit": "1399a59",
+          "criteria": [
+            12,
+            13
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Worker 13/13, Architecture 7/7 (outbox and timer tables access), Orders 6/6, Payments.Tests 4/4, Api 125/125",
+              "db-tests: WorkflowTimerTests 1/1, PaymentReconciliationTests 4/4, OrderRecoveryTests 4/4, PaymentEndpointTests 9/9, PaymentWebhookTests 5/5, OrderPaymentSagaTests 4/4, OrderLifecycleTests 9/9, OrderOutboxTests 3/3, RowLevelSecurityTests 6/6, SchemaOwnershipTests 8/8"
+            ],
+            "proofs": [
+              "Claim ignores the lease: timer test fails",
+              "A stale claim may finish the timer: timer test fails",
+              "Review one check late: reconciliation test fails",
+              "Unfinished idempotency keys never answered: interrupted-request test fails",
+              "No release after a crashed expiry: two recovery tests fail"
+            ]
+          }
+        },
+        {
+          "id": "M6-S5",
+          "title": "Stripe test-mode adapter, fixtures, test-key guard",
+          "status": "verified",
+          "commit": "f701539",
+          "criteria": [
+            14
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Payments.Tests 10/10, Api 126/126, Worker 13/13, Architecture 7/7",
+              "db-tests: PaymentEndpointTests 9/9, PaymentReconciliationTests 4/4, PaymentWebhookTests 5/5"
+            ],
+            "proofs": [
+              "Stripe Idempotency-Key header dropped: charge test fails"
+            ]
+          }
+        },
+        {
+          "id": "M6-R1",
+          "title": "Review fixes: reconcile with the payment's provider, begin mark after the payment commits, zero total refused, no client abort after commit, simulator switch, timer lease skip, card filter, foreign events, raw-byte signatures",
+          "status": "verified",
+          "commit": "81fc3a7",
+          "criteria": [
+            2,
+            12
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 127/127, Worker 13/13, Payments.Tests 10/10, Architecture 7/7",
+              "db-tests: PaymentEndpointTests 10/10, PaymentWebhookTests 6/6, PaymentReconciliationTests 5/5, WorkflowTimerTests 2/2, OrderRecoveryTests 4/4, OrderPaymentSagaTests 4/4, OrderLifecycleTests 9/9"
+            ],
+            "proofs": [
+              "Timer run after its lease passed: lease-skip test fails",
+              "Zero total reaches the payment: nothing-to-pay test fails",
+              "Provider choice, client-abort token, card filter, foreign events and raw-byte signatures: asserted, deferred to gate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "Subscriptions and refunds",
+      "priority": "P2",
+      "goal": "Subscription lifecycle and refunds without duplicate business effects.",
+      "dependsOn": [
+        "M6"
+      ],
+      "decisions": [
+        18
+      ],
+      "specs": [
+        "0007"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M7-G1",
+          "text": "Duplicate renewal or refund attempts cannot create duplicate business effects",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at 3b1bfb8 (Database 254/254, 0 warnings); progress.ps1 -Verify quality run at 3b1bfb8 (331/331 non-database tests, Compose valid); gate break-it checks: no unique payment per renewal attempt, refund key never claimed, refunds above the captured amount, plus 8 deferred proofs (plan permission, period end, attempt limit, refund permission, refund reconciliation, full refund mapping, ISK/UGX units, requires_action)"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M7-S1",
+          "title": "Subscriptions module: plans, subscribe, read, cancel, state table, permissions",
+          "status": "verified",
+          "commit": "3eea510",
+          "criteria": [
+            1,
+            2,
+            3,
+            4,
+            17
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Subscriptions.Tests 6/6, IdentityAccess 68/68, Payments.Tests 10/10, Architecture 7/7, Api 127/127 (OpenAPI snapshot regenerated, additive)",
+              "db-tests: SubscriptionEndpointTests 6/6, IsolationMatrixTests 1/1 (23 routes), RowLevelSecurityTests 6/6 (14 forced tables), RolePrivilegeTests 20/20, SchemaOwnershipTests 9/9, MigratorTests 2/2 (second run; first hit the transient role-provisioning failure)"
+            ],
+            "proofs": [
+              "Subscriptions not under RLS: RowLevelSecurityTests fails",
+              "Subscriber not checked: read/cancel test fails",
+              "No RLS and no tenant filter: cross-tenant test fails",
+              "No live-subscription unique index: duplicate and concurrent subscribe tests fail",
+              "Renewal row not written with the subscription: subscribe test fails"
+            ]
+          }
+        },
+        {
+          "id": "M7-S2",
+          "title": "Quartz.NET over due rows with dead-lettering, payment subjects, renewal charges and retries",
+          "status": "verified",
+          "commit": "d02240c",
+          "criteria": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Subscriptions.Tests 7/7, Payments.Tests 10/10, Worker 13/13, Architecture 7/7, Api 127/127 (OpenAPI unchanged)",
+              "db-tests: SubscriptionRenewalTests 6/6, WorkflowTimerTests 3/3, SchedulerTests 1/1 three runs in a row, SchemaOwnershipTests 10/10, RolePrivilegeTests 22/22, RowLevelSecurityTests 6/6, MigratorTests 2/2, PaymentEndpointTests 10/10, PaymentReconciliationTests 5/5, PaymentWebhookTests 6/6, OrderRecoveryTests 4/4, OrderPaymentSagaTests 4/4, SubscriptionEndpointTests 6/6"
+            ],
+            "proofs": [
+              "No unique payment per charge attempt: attempt test fails",
+              "Renewal save ignores the state it read: stale-renewal test fails",
+              "A dead row is never marked: dead-letter test fails",
+              "Dead rows still claimed: dead-letter test fails"
+            ]
+          }
+        },
+        {
+          "id": "M7-S3",
+          "title": "Refunds in Payments: port, simulator, Stripe, API, captured-amount lock, reconciliation, webhooks, events",
+          "status": "verified",
+          "commit": "e398195",
+          "criteria": [
+            9,
+            10,
+            11,
+            12,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Payments.Tests 12/12, Architecture 7/7, Api 127/127 (OpenAPI snapshot regenerated, additive)",
+              "db-tests: RefundEndpointTests 5/5, IsolationMatrixTests 1/1 (25 routes), RowLevelSecurityTests 6/6 (15 forced tables), PaymentEndpointTests 10/10, PaymentWebhookTests 6/6, PaymentReconciliationTests 5/5, SubscriptionRenewalTests 6/6, MigratorTests 2/2, SchemaOwnershipTests 10/10"
+            ],
+            "proofs": [
+              "Captured amount not checked: over-refund test fails",
+              "Payment not locked while refunds are checked: concurrent over-refund test fails (race, one run)",
+              "Refund key never claimed: replay test fails",
+              "Request hash not compared: replay test fails (no 422)",
+              "Refunds not under RLS: RowLevelSecurityTests fails"
+            ]
+          }
+        },
+        {
+          "id": "M7-S4",
+          "title": "Order refund states, consumer, cancelling a paid order",
+          "status": "verified",
+          "commit": "49178fe",
+          "criteria": [
+            13,
+            14
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Orders.Tests 6/6, Api 127/127 (OpenAPI snapshot regenerated: cancel gains an optional body, 202, 400 and 403; nothing removed)",
+              "db-tests: OrderRefundSagaTests 3/3, OrderEndpointTests 6/6, OrderLifecycleTests 9/9, OrderPaymentSagaTests 4/4, OrderRecoveryTests 4/4, PaymentEndpointTests 10/10, RefundEndpointTests 5/5, MigratorTests 2/2, SchemaOwnershipTests 10/10"
+            ],
+            "proofs": [
+              "A repeated cancellation job sends the refund again: cancellation test fails",
+              "Cancellation job not scheduled with the cancellation: failed-refund test fails",
+              "A failed cancellation refund leaves the order stuck: failed-refund test fails"
+            ]
+          }
+        },
+        {
+          "id": "M7-S5",
+          "title": "requires_action as failed, UGX/ISK minor units",
+          "status": "verified",
+          "commit": "16b5504",
+          "criteria": [
+            16
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Payments.Tests 14/14"
+            ],
+            "proofs": [
+              "requires_action mapping and ISK/UGX units: asserted, deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M7-R1",
+          "title": "Review fixes R1-R12 (all, chosen by the user): late renewal charges refunded, cancel flag in the renewal save, failed and pending cancellation refunds, in-review renewals, early refund events, Stripe ambiguous refusals, requires_action cancel, removed members, suspended tenants, catch-up, refund reversal log, refund paging, longer backoff",
+          "status": "verified",
+          "commit": "3b1bfb8",
+          "criteria": [
+            3,
+            7,
+            10,
+            12,
+            13,
+            14,
+            16
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Subscriptions.Tests 7/7, Payments.Tests 14/14, Orders.Tests 6/6",
+              "db-tests: SubscriptionRenewalTests 12/12, OrderRefundSagaTests 6/6, WorkflowTimerTests 3/3, RefundEndpointTests 5/5, OrderEndpointTests 6/6, OrderLifecycleTests 9/9, PaymentEndpointTests 10/10"
+            ],
+            "proofs": [
+              "Refund of a charge that succeeded after the end dropped: R1 test fails",
+              "Renewal save ignores the cancel flag: R2 test fails",
+              "A failed cancellation refund blocks the next: R3 test fails",
+              "Cancellation does not wait for unsettled refunds: R4 test fails",
+              "An early refund event is recorded: R6 test fails",
+              "Refund reversal log: no test, deferred to gate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "Async files and reporting",
+      "priority": "P2/P3",
+      "goal": "Search, imports, exports, and scheduled jobs that are asynchronous, bounded, and tenant-scoped.",
+      "dependsOn": [
+        "M7"
+      ],
+      "decisions": [
+        19
+      ],
+      "specs": [
+        "0008"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M8-G1",
+          "text": "Large jobs are asynchronous, tenant-scoped, bounded, resumable where needed, and observable",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at f0dac36 (Database 284/284, 0 warnings); progress.ps1 -Verify quality run at f0dac36 (361/361 non-database tests, Compose valid); gate break-it checks: cross-tenant import read, active-job limit, batch applied twice, metrics snapshot, plus 5 deferred proofs (search AND rule, header check, row limit, export overwrite, export row limit)"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M8-S1",
+          "title": "PostgreSQL full-text product search",
+          "status": "verified",
+          "commit": "36b625c",
+          "criteria": [
+            1
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Catalog.Tests 8/8, Architecture 7/7, Api 127/127 (OpenAPI snapshot regenerated, additive: q parameter)",
+              "db-tests: ProductEndpointTests 8/8, MigratorTests 2/2, SchemaOwnershipTests 10/10, RowLevelSecurityTests 6/6"
+            ],
+            "proofs": [
+              "No tenant filter and no RLS: search test fails",
+              "Word and prefix rules: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M8-S2",
+          "title": "ImportsExports module, storage port, filesystem adapter, stored files",
+          "status": "verified",
+          "commit": "e667454",
+          "criteria": [
+            2,
+            12
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "ImportsExports.Tests 3/3, Architecture 7/7, Api 128/128 (OpenAPI unchanged)",
+              "db-tests: StoredFileTests 3/3, RowLevelSecurityTests 6/6 (16 forced tables), RolePrivilegeTests 24/24, SchemaOwnershipTests 11/11, MigratorTests 2/2"
+            ],
+            "proofs": [
+              "Stored files not under RLS: RowLevelSecurityTests fails",
+              "Another tenant opens a file without filter, RLS and key guard: cross-tenant test fails",
+              "A key may leave the storage root: storage test fails",
+              "Checksum not verified on read: integrity test fails"
+            ]
+          }
+        },
+        {
+          "id": "M8-S3",
+          "title": "Asynchronous import jobs with row-level validation and checkpoints",
+          "status": "verified",
+          "commit": "353f827",
+          "criteria": [
+            3,
+            4,
+            5,
+            6,
+            9
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "ImportsExports.Tests 5/5, Catalog.Tests 8/8, Architecture 7/7, Worker.Tests 13/13, Api 128/128 (OpenAPI snapshot regenerated, additive: 3 import routes)",
+              "db-tests: ImportJobTests 6/6 (3 runs in a row), IsolationMatrixTests 1/1 (28 routes), RowLevelSecurityTests 6/6 (19 forced tables), RolePrivilegeTests 24/24, SchemaOwnershipTests 11/11, MigratorTests 2/2, ProductEndpointTests 8/8, StoredFileTests 3/3"
+            ],
+            "proofs": [
+              "Import tables not forced under RLS: RowLevelSecurityTests fails",
+              "import_batches not forced: RowLevelSecurityTests fails",
+              "No RLS and no tenant predicate on job reads: cross-tenant test fails",
+              "Reused key accepted for another file: submission test fails",
+              "Batch re-applied after a crash: resume test fails",
+              "Active-job cap off by one: submission test fails",
+              "Unconditional checkpoint: checkpoint test fails",
+              "Unreadable CSV left running: file-shape test fails",
+              "Header and row limits: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M8-S4",
+          "title": "Streamed exports with CSV formula-injection protection",
+          "status": "verified",
+          "commit": "530187d",
+          "criteria": [
+            7,
+            8,
+            9
+          ],
+          "verification": {
+            "date": "2026-10-21",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "ImportsExports.Tests 16/16, Catalog.Tests 8/8, Architecture 7/7, Worker.Tests 13/13, Api 128/128 (OpenAPI snapshot regenerated, additive: 3 export routes)",
+              "db-tests: ExportJobTests 5/5 (every completed run passed; some attempts failed at role provisioning before tests ran), ImportJobTests 6/6, IsolationMatrixTests 1/1 (31 routes), RowLevelSecurityTests 6/6 (20 forced tables), RolePrivilegeTests 24/24, SchemaOwnershipTests 11/11, MigratorTests 2/2, ProductEndpointTests 8/8, StoredFileTests 3/3"
+            ],
+            "proofs": [
+              "export_jobs not forced under RLS: RowLevelSecurityTests fails",
+              "No RLS and no tenant predicate on export reads: cross-tenant test fails",
+              "Key reused by another member accepted: submission test fails",
+              "Active export cap off by one: submission test fails",
+              "Formula cells not neutralized: round-trip test fails",
+              "Import does not restore neutralized cells: round-trip test fails",
+              "Expired file still downloads: expiry test fails",
+              "Restart overwrite and 100,000-row limit: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M8-S5",
+          "title": "File expiry due rows, Quartz cron metrics, job counters",
+          "status": "verified",
+          "commit": "854feda",
+          "criteria": [
+            10,
+            11
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "ImportsExports.Tests 16/16, Catalog.Tests 8/8, Architecture 7/7 (after moving the due-row snapshot into WorkflowTimerStore), Worker.Tests 14/14, Api 128/128 (OpenAPI unchanged)",
+              "db-tests: FileLifecycleTests 3/3 (three completed runs; other attempts failed at role provisioning before tests ran), SchedulerTests 1/1, ExportJobTests 5/5, ImportJobTests 6/6, OutboxPublisherTests 7/7, IsolationMatrixTests 1/1"
+            ],
+            "proofs": [
+              "Export expiry never scheduled: lifecycle test fails",
+              "Upload expiry never scheduled: lifecycle test fails",
+              "Expiry deletes nothing: lifecycle test fails",
+              "Abandoned upload keeps its file: abandon test fails",
+              "No due-row snapshot: metrics test fails",
+              "Import counted as export: metrics test fails",
+              "Module tasks never scheduled: SchedulerTests fails by timeout"
+            ]
+          }
+        },
+        {
+          "id": "M8-R1",
+          "title": "Review fixes F1-F8 and L1-L9 (chosen by the user): upload route body limit, UTF-8 only, price bound, failed-run job ends and stale cap, upload resume on retry, conditional abandon, fresh metrics snapshots, fields-per-row limit, blank lines, key regex, full-width formula characters, zero-byte reads, storage open race, orphan tasks, tenant-guarded timer upsert, cross-tenant due rows, two-character search prefixes",
+          "status": "verified",
+          "commit": "f0dac36",
+          "criteria": [
+            1,
+            2,
+            3,
+            4,
+            8,
+            9,
+            10,
+            11
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "verify.ps1 -Database: format, locked restore, Release build 0 warnings, all unit and host tests green (Api 128/128, Worker 14/14, ImportsExports 26/26, Catalog 9/9), Database 284/284"
+            ],
+            "proofs": [
+              "18 break-it proofs R1-R18, each failing at an assertion, including the upload limit via a Kestrel body-limit stand-in"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M9",
+      "title": "Security and privacy",
+      "priority": "P2",
+      "goal": "Threat models, audit, retention, scanning, and a controlled admin boundary.",
+      "dependsOn": [
+        "M8"
+      ],
+      "decisions": [
+        8
+      ],
+      "specs": [
+        "0009"
+      ],
+      "exitCriteria": [
+        {
+          "id": "M9-G1",
+          "text": "Threat-model actions are tracked; high-risk security tests and pipeline checks pass",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database -Security at 787a9c6+cd55b11 (2026-10-22): format clean, Release build 0 warnings, unit and host tests 371/371 (+1 Unix-only skip), Database 325/325; security scan: secrets, dependencies, images (8, after upgrades and 58 dated exceptions) and configuration pass after one spec wording fix; 184 threat-model actions tracked (124 done, 26 planned, 34 accepted), progress.ps1 action check exit 0. Slice proofs: forced RLS, deduplication, event atomicity (x2), tenant target, read isolation, retention tenant filter, requester check, privileged Compose service, foreign support grant. Not run: the milestone review (skipped by the user), progress.ps1 -Verify coverage run and re-proofs of deferred guards (speed, user 2026-10-22); CI never ran (on hold)."
+        }
+      ],
+      "slices": [
+        {
+          "id": "M9-S1",
+          "title": "Threat models for every exposed workflow, action register and tracker check",
+          "status": "verified",
+          "commit": "a383eab",
+          "criteria": [
+            1
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "progress.ps1: 184 actions in 8 models (83 done, 67 planned, 34 accepted), exit 0",
+              "Heading check: all 8 models follow the blueprint section 22 template"
+            ],
+            "proofs": [
+              "Missing test method in a done row: check exits 1",
+              "Planned action due in closed M8: check exits 1",
+              "Invalid owner: check exits 1"
+            ]
+          }
+        },
+        {
+          "id": "M9-S2",
+          "title": "Audit module: append-only log, outbox write path, Tenants and IdentityAccess events (ADR-0026 Proposed)",
+          "status": "verified",
+          "commit": "2e0f19d",
+          "criteria": [
+            2,
+            3,
+            6
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 131/131, Architecture 7/7, Tenants.Tests 77/77, IdentityAccess.Tests 68/68, Worker 14/14",
+              "db-tests: AuditLogTests 16/16 (3 runs in a row; one attempt failed at role provisioning before tests ran), Persistence 48/48, IdentityAccess 64/64, Tenants 26/26, Messaging 21/21 (OutboxPublisherTests lease test failed once in four runs today, untouched by this slice; both reruns passed)"
+            ],
+            "proofs": [
+              "No forced RLS on the audit tables: cross-tenant test fails",
+              "No deduplication on the event id: duplicate-delivery test fails",
+              "Event committed before the last-administrator refusal: refused-change test fails",
+              "Event saved apart from its change: commit-failure test fails",
+              "A tenant target of another tenant accepted: that shape fails (check constraint still refuses the write)",
+              "Privileges, update trigger, other field validation, key check: deferred to gate"
+            ],
+            "open": [
+              "S2-L1 to S2-L9 review findings, listed in SPEC-0009 Verification"
+            ]
+          }
+        },
+        {
+          "id": "M9-S3",
+          "title": "More audited actions; tenant and platform audit reads",
+          "status": "verified",
+          "commit": "98a89e5",
+          "criteria": [
+            2,
+            4,
+            5
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "Api 131/131 (OpenAPI snapshot regenerated, additive: 2 audit routes), Architecture 7/7, IdentityAccess.Tests 68/68, ImportsExports.Tests 26/26, Orders.Tests 6/6, Payments.Tests 14/14, Worker 14/14",
+              "db-tests: Audit (AuditLogTests, AuditReadTests) 22/22, ImportsExports 24/24, RefundEndpointTests 5/5, OrderRefundSagaTests 6/6, IsolationMatrixTests 1/1 (32 routes), Persistence 48/48 (one attempt failed at role provisioning before tests ran)"
+            ],
+            "proofs": [
+              "No tenant predicate and no forced RLS on audit reads: tenant and platform read tests fail",
+              "Producer events, paging, filters and the platform tenant check: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M9-S4",
+          "commit": "37d3976",
+          "title": "Retention and deletion: privacy document, purge tasks, pseudonymisation (ADR-0025 Proposed)",
+          "status": "verified",
+          "criteria": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "Worker 15/15, IdentityAccess.Tests 68/68, Architecture 7/7",
+              "db-tests: Persistence 54/54 (RetentionTests 5, PrivacyDocumentTests 1, migrations, RLS, roles, schemas; one attempt failed at role provisioning before tests ran)"
+            ],
+            "proofs": [
+              "No tenant filter in a retention delete: another tenant's expired timer goes in the wrong run (retention test fails)",
+              "Document check, pseudonymisation and purge functions: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M9-S5",
+          "commit": "658ddfd",
+          "title": "Background-job requester re-checks (L10), storage hardening (L14), Worker EF log level",
+          "status": "verified",
+          "criteria": [
+            11,
+            12,
+            19
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "ImportsExports.Tests 27/27 + 1 skipped (Unix file modes on Windows), Worker 16/16, Api ConfigurationFilesTests 4/4",
+              "db-tests: ImportsExports 27/27"
+            ],
+            "proofs": [
+              "No requester check: demoted, removed and suspended-tenant jobs succeed (three job tests fail)",
+              "Sweep and EF log level: deferred to gate"
+            ],
+            "open": [
+              "Unix file modes verified only on Linux: not run on this Windows workstation and CI is on hold"
+            ]
+          }
+        },
+        {
+          "id": "M9-S6",
+          "commit": "7c1d12c",
+          "title": "Secret, dependency, container, and configuration scanning (ADR-0028 Proposed)",
+          "status": "verified",
+          "criteria": [
+            13,
+            14
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Architecture 10/10 (SecurityScanTests 3)",
+              "security-scan.ps1: secrets pass (3 exceptions), dependencies pass, config pass, images fail (8 of 8 third-party images)"
+            ],
+            "proofs": [
+              "A privileged Compose service fails the configuration scan"
+            ],
+            "open": [
+              "Images fixed in cd55b11: 3 upgraded, 58 dated exceptions expiring 2026-11-21 for you to review"
+            ]
+          }
+        },
+        {
+          "id": "M9-S7",
+          "commit": "787a9c6",
+          "title": "Platform-admin and support-operator boundary (ADR-0027 Proposed)",
+          "status": "verified",
+          "criteria": [
+            15,
+            16,
+            17,
+            18
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "Api 132/132 (OpenAPI snapshot regenerated, additive: 4 support routes), Architecture 10/10, Worker 16/16",
+              "db-tests: SupportAccessTests 4/4, Persistence 57/57, IsolationMatrixTests 1/1"
+            ],
+            "proofs": [
+              "An access check that ignores the grant's operator lets a colleague read the tenant (views test fails)",
+              "Route matrix, opening, ending, revoking and expiry: deferred to gate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M10",
+      "title": "Production observability",
+      "priority": "P3",
+      "goal": "Key journeys and workflows can be diagnosed from metrics, logs, and traces.",
+      "dependsOn": [
+        "M9"
+      ],
+      "decisions": [],
+      "specs": [
+        "0010"
+      ],
+      "guide": "docs/milestones/M10-production-observability.md",
+      "exitCriteria": [
+        {
+          "id": "M10-G1",
+          "text": "Key user journeys and worker workflows can be diagnosed from metrics, logs, and traces",
+          "status": "verified",
+          "evidence": "verify.ps1 -Database at 93c16d7 (2026-10-22): format clean, Release build 0 warnings, unit and host tests all pass (Api 141, Worker 16, Architecture 19, modules), Database 328/328 with the label guard quiet; the promtool step hit the flaky Docker probe and passed on rerun after the probe fix (bc32ecc). dev.ps1 smoke 14/14 (retention, dashboards, broker scrape, rules loaded and no alert firing). Drills (docs/operations/drills/2026-10-22-m10-gate.md): poison, probe, database, broker, provider, worker each fired its alert and the runbook queries led to the failing trace and logs. Gate re-proofs: query-string scrub, label guard fixture. Not run: reviews (skipped per task), progress.ps1 -Verify coverage, security scan of the new Alertmanager image; CI on hold."
+        }
+      ],
+      "slices": [
+        {
+          "id": "M10-S1",
+          "title": "Telemetry guards: tag allow-list, query-string, log redaction (ADR-0031 Proposed), 7-day retention",
+          "status": "verified",
+          "commit": "35e9d1a",
+          "criteria": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 140/140 (first run 139/140: a disposed TelemetryCapture of another test threw into a request; capture now drops late items), Worker 16/16, Architecture 11/11",
+              "Live read-back after recreating the stack: Prometheus 1w, Loki retention enabled and 1w, Tempo block_retention 168h0m0s twice"
+            ],
+            "proofs": [
+              "No LogRedactionProcessor: the planted third-party exception message is exported (Assert.DoesNotContain fails)",
+              "Retention read-back against the stack before the change: 15d, 0s, no 168h",
+              "Query-string attribute, tag guard and its fixture: deferred to gate"
+            ],
+            "open": [
+              "Database tests not run in this slice: the tag guard now also wraps the Database test run (gate)"
+            ]
+          }
+        },
+        {
+          "id": "M10-S2",
+          "title": "Missing signals: Npgsql, scheduled jobs, payments, refunds, reservations, dead timers, retention, support grants, broker queues",
+          "status": "verified",
+          "commit": "027fe38",
+          "criteria": [
+            2,
+            3,
+            4
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 140/140, Worker 16/16 (after adding payments.metrics to the expected task list)",
+              "db-tests (all, first run with the tag guard): 326/328; WorkflowTimerTests (PostgreSQL 17 cannot read a v7 UUID's time with uuid_extract_timestamp: decoded in SQL) and NotificationConsumerTests (pre-existing race: the span ends after the outcome; the test now waits for it) fixed, then 5/5 and 5/5",
+              "Label guard: no violation over the Api, Worker and Database runs",
+              "Prometheus scrapes rabbitmq:15692 (up == 1)"
+            ],
+            "proofs": [
+              "No Npgsql activity source: no database span in the request's trace (Assert.Contains fails)",
+              "Outcome counters, scheduler metrics, unresolved snapshot: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M10-S3",
+          "title": "Dashboards as code: golden signals, worker, business",
+          "status": "verified",
+          "commit": "fb18a1f",
+          "criteria": [
+            1,
+            3,
+            4
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "Architecture 16/16 on the working tree (dashboard queries per criterion, read-only provisioning; one of the 16 is the S4 SLO document test)",
+              "Grafana recreated: provisioning log 'finished to provision dashboards', no error"
+            ],
+            "proofs": [
+              "Golden-signal dashboard without the 4xx query: dashboard test fails (Assert.Contains)",
+              "Panels showing data and the smoke check for the three dashboards: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M10-S4",
+          "title": "SLO documents and recording rules (ADR-0030 Proposed)",
+          "status": "verified",
+          "commit": "be3b37e",
+          "criteria": [
+            9
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Release build of the solution: 0 warnings",
+              "Architecture 16/16 (SLO document fields and recording rules per window)",
+              "dev.ps1 rules: promtool check (25 rules) and test pass (one run failed without output while the Prometheus container was being recreated; the next run passed)",
+              "Prometheus loads 5 groups, 25 rules, health ok"
+            ],
+            "proofs": [
+              "Catalog SLI without its 5xx filter: promtool test fails"
+            ]
+          }
+        },
+        {
+          "id": "M10-S5",
+          "title": "Alert rules, Alertmanager, rule unit tests (ADR-0029 Proposed)",
+          "status": "verified",
+          "commit": "3ac0d7d",
+          "criteria": [
+            10,
+            11,
+            12,
+            13
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings",
+              "Api 141/141 (first run 140/141: the new health gauge reported int, which MeterCapture does not read; now long like the other gauges), Worker 16/16, Architecture 17/17",
+              "dev.ps1 rules: promtool check and test (22 alert cases, 7 SLI cases) and amtool check-config pass",
+              "Live: Prometheus loads 9 groups and 51 rules and sends to Alertmanager; with no host running only ApiTelemetryMissing and WorkerTelemetryMissing fire"
+            ],
+            "proofs": [
+              "RefundReversed without its new-series clause: the first reversal does not fire (promtool test fails)",
+              "Inhibition, smoke check for no firing alert and the drills: deferred to gate"
+            ]
+          }
+        },
+        {
+          "id": "M10-S6",
+          "title": "Runbooks, fault drills, drill records; accepted-row review",
+          "status": "verified",
+          "commit": "6889f3f",
+          "criteria": [
+            14,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Architecture 19/19 (runbook template and every alert's runbook exists)",
+              "dev.ps1 drill: argument and host checks answer (drills run at the gate)"
+            ],
+            "proofs": [
+              "A runbook with a renamed heading: template test fails (Assert.Equal)",
+              "Drills and runbook queries against the stack: at the gate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "M11",
+      "title": "Performance and resilience",
+      "priority": "P3",
+      "goal": "A repeatable performance baseline and fault-injection evidence.",
+      "dependsOn": [
+        "M10"
+      ],
+      "decisions": [
+        9
+      ],
+      "specs": [],
+      "exitCriteria": [
+        {
+          "id": "M11-G1",
+          "text": "Repeatable baseline and failure reports exist; capacity assumptions and bottlenecks are documented",
+          "status": "planned"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M11-S1",
+          "title": "Workload model",
+          "status": "planned"
+        },
+        {
+          "id": "M11-S2",
+          "title": "k6 scenarios",
+          "status": "planned"
+        },
+        {
+          "id": "M11-S3",
+          "title": "Baseline report",
+          "status": "planned"
+        },
+        {
+          "id": "M11-S4",
+          "title": "Fault-injection suite",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "M12",
+      "title": "Cloud deployment",
+      "priority": "P3",
+      "goal": "Reproducible cloud deployment with smoke checks and a tested rollback path.",
+      "dependsOn": [
+        "M10"
+      ],
+      "decisions": [
+        1,
+        2
+      ],
+      "specs": [
+        "0012"
+      ],
+      "note": "Runs before M11 by the owner's decision (2026-10-22, roadmap sequencing note 5). Without M11 there is no workload model, baseline or capacity numbers: sizing is provisional, SLO targets stay provisional, postgres_exporter stays out, and rate limiting is not in place.",
+      "exitCriteria": [
+        {
+          "id": "M12-G1",
+          "text": "Reproducible deployment, smoke checks, and a tested application rollback path",
+          "status": "planned"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M12-S1",
+          "title": "AWS versus GCP comparison (ADR-0032 Proposed; AWS chosen by the owner)",
+          "status": "verified",
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "Comparison against blueprint section 18 recorded in ADR-0032; owner chose AWS"
+            ],
+            "proofs": [],
+            "open": [
+              "Prices are estimates, not verified against the AWS price list"
+            ]
+          }
+        },
+        {
+          "id": "M12-S2",
+          "title": "Terraform: bootstrap state, shared registry/OIDC/budget, one environment root for dev, staging, prod; IaC scan",
+          "status": "implemented",
+          "criteria": [
+            1,
+            2,
+            3,
+            15
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "terraform fmt -recursive -check: clean",
+              "terraform validate: bootstrap, shared, environment all valid (hashicorp/aws 6.70.0, hashicorp/random 3.9.1; lock files for linux_amd64 and windows_amd64)",
+              "security-scan.ps1 -Only iac (Trivy 0.75 config): pass, with one reviewed exception AWS-0053 (public load balancer)"
+            ],
+            "proofs": [
+              "Public RDS instance (publicly_accessible = true): AWS-0180 HIGH fails the IaC scan"
+            ],
+            "open": [
+              "Not applied: no AWS credentials yet (owner, 2026-10-22); plan, state contents and budget alarm verified only after apply",
+              "Spec SPEC-0012 is Draft; written ahead of approval at the owner's request"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3a",
+          "title": "RabbitMQ over TLS with certificate validation; plain AMQP only to loopback; only the Worker gets broker access",
+          "status": "verified",
+          "criteria": [
+            7
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings, 0 errors",
+              "Worker 18/18 (2 new: refusal naming Messaging:RabbitMq:UseTls, start with TLS to a remote host)",
+              "terraform validate (environment): valid"
+            ],
+            "proofs": [
+              "Validation rule disabled: Host_refuses_to_start_with_plain_amqp_to_a_remote_broker_and_names_the_key fails at Assert.NotNull"
+            ],
+            "open": [
+              "OutboxPublisherTests not run: dev.ps1 stops because deploy/compose/.env in this worktree lacks GRAFANA_ADMIN_PASSWORD (owner's file; deferred to gate)",
+              "TLS handshake against Amazon MQ: S5"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3c",
+          "title": "S3 storage adapter behind the storage port (IE-A18), explicit Storage:Provider with startup validation, deployed storage settings, 503 on a storage failure",
+          "status": "verified",
+          "criteria": [
+            8,
+            16,
+            17,
+            18,
+            19
+          ],
+          "verification": {
+            "date": "2026-10-23",
+            "ran": [
+              "Release build of the solution: 0 warnings, 0 errors",
+              "Api 151/151 (6 new storage validation cases), Worker 19/19, Architecture 58/58 (1 new: deployed storage settings)",
+              "db-tests: S3StorageTests 3/3 against S3Mock 5.2.3, StoredFileTests 3/3, ExportJobTests 7/7 (1 new: 503 without provider detail)",
+              "terraform fmt -check and terraform validate (environment): valid"
+            ],
+            "proofs": [
+              "Host_refuses_filesystem_storage_unless_it_is_switched_on run against the code before S3c in a temporary worktree: fails at Assert.Contains"
+            ],
+            "open": [
+              "Break-it proofs for criteria 17 to 19 and the 503 mapping: deferred to the gate",
+              "Criterion 8's TLS-only bucket and S3 through the task role: S5 on staging"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3d",
+          "title": "Dockerfiles for API, Worker, Migrator (chiseled, non-root, deny-all context, pinned by digest); VerifyFull against the shipped RDS CA",
+          "status": "verified",
+          "criteria": [
+            5
+          ],
+          "verification": {
+            "date": "2026-10-23",
+            "ran": [
+              "dotnet format --verify-no-changes: clean; Release build: 0 warnings, 0 errors; Architecture 32/32 (5 ContainerImageTests)",
+              "terraform fmt -check and validate (environment): pass; security-scan.ps1 -Only iac (covers deploy/docker): pass",
+              "docker build of api, worker, migrator from the worktree: built (170, 169, 145 MB); context 99 kB; image user 1654",
+              "Run read-only, /tmp tmpfs only, all capabilities dropped, no-new-privileges, placeholder settings, dependencies unreachable: api and worker /health/live 200 and /health/ready 503; migrator exits 1 on the database connection, not the file system",
+              "No shell in the api image; /app/certs/rds-ca.pem holds the 3 Amazon RDS ap-south-1 roots; no .env, secrets.json, tfstate or appsettings.Development.json in the image"
+            ],
+            "proofs": [
+              "Deny-all line removed from .dockerignore: build-context test fails at Assert.Equal (2026-10-22)",
+              "Digest removed from ASPNET_IMAGE: Base_images_are_pinned_by_digest_and_development_settings_never_ship fails at Assert.Matches"
+            ],
+            "found": [
+              "Terraform set Payments:Provider=simulator without Payments:Simulator:Enabled, so API and Worker would have refused to start in every environment; fixed in services.tf and guarded by a test",
+              "appsettings.Development.json shipped in the images; now removed at publish"
+            ],
+            "open": [
+              "The process UID was not observed in a running container (the image config says 1654)",
+              "Keycloak's JDBC connection stays sslmode=require: its image does not carry the RDS CA"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3e",
+          "title": "Database provisioning task (roles, Keycloak database) and the production platform realm requiring OTP",
+          "status": "verified",
+          "criteria": [
+            5,
+            14
+          ],
+          "verification": {
+            "date": "2026-10-22",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings, 0 errors",
+              "Architecture 25/25 (3 new ProductionRealmTests)",
+              "terraform fmt -check and validate (environment): pass; security-scan.ps1 -Only iac: pass",
+              "Provisioning script in a throwaway postgres:17.11 container (local pinned image, no port), run twice: exit 0 both; roles non-superuser without BYPASSRLS; keycloak owns its database; keycloak cannot connect to tenantflow, tenantflow_app cannot connect to keycloak",
+              "Production realm imported into a throwaway Keycloak 26.8 (local pinned image, loopback 18080; sslRequired relaxed in the copy only): built-in flows present, browserFlow bound; a user with a password and no OTP gets no authorization code, only the OTP setup page"
+            ],
+            "proofs": [
+              "OTP step CONDITIONAL in the realm file: ProductionRealmTests browser-flow test fails at Assert.Equal",
+              "Live negative control: OTP step disabled and CONFIGURE_TOTP not a default action: the same sign-in is issued an authorization code"
+            ],
+            "open": [
+              "Second sign-in after enrolment (OTP asked every time) not exercised live; held by the REQUIRED step and the test",
+              "The realm reaches the deployed Keycloak with S3f (a Keycloak image or a one-off import, waiting for the download go-ahead)",
+              "Provisioning on RDS itself (master user without superuser): S5"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3f",
+          "title": "RabbitMQ application user: no tags, own virtual host, checked against the management API; only the provisioning task reaches it",
+          "status": "verified",
+          "criteria": [
+            7
+          ],
+          "verification": {
+            "date": "2026-10-23",
+            "ran": [
+              "dotnet format --verify-no-changes: clean; Release build: 0 warnings, 0 errors; Architecture 35/35 (3 new BrokerProvisioningTests)",
+              "terraform fmt -check and validate (environment): pass; security-scan.ps1 -Only iac: pass",
+              "provision-broker.sh in curl 8.22.0 (read-only, no capabilities) against a throwaway RabbitMQ 4.3.6, run twice: exit 0 both; user tenantflow-app has no tags and .* .* .* on vhost tenantflow only; AMQP login accepted, wrong password refused; its management API call answered 401",
+              "A password containing a quote is refused before any request"
+            ],
+            "proofs": [
+              "Live negative control: a copy giving the user the management tag fails its own check (HTTP 200, exit 1)",
+              "Broker 443 rule pointed at the Worker's group: Only_the_provisioning_task_reaches_the_management_api fails at Assert.Contains"
+            ],
+            "open": [
+              "Against Amazon MQ itself (management API on 443, AMQPS 5671): S5"
+            ]
+          }
+        },
+        {
+          "id": "M12-S3g",
+          "title": "Keycloak image with both production realms (read-only, verify-full to RDS) and the production tenantflow realm",
+          "status": "verified",
+          "criteria": [
+            14
+          ],
+          "verification": {
+            "date": "2026-10-23",
+            "ran": [
+              "dotnet format --verify-no-changes: clean; Release build: 0 warnings, 0 errors; Architecture 38/38 (2 new ProductionRealmTests, 1 new ContainerImageTests)",
+              "terraform fmt -check and validate (shared, environment): pass; security-scan.ps1 -Only iac (now covers deploy/keycloak): pass",
+              "deploy/keycloak/Dockerfile built (672 MB, user 1000) and run with a read-only root, tmpfs for data/tmp and /tmp, all capabilities dropped, against a throwaway PostgreSQL 17.11: both realms imported",
+              "Tenant realm, through Keycloak's own pages: a user with a temporary password must set a new one, then gets a code; a user without OTP gets a code; after enrolling an OTP on the setup page, the OTP is asked and a correct one gives a code; the password grant answers unauthorized_client",
+              "Platform realm in the same image: an operator without OTP is sent to OTP setup, no code",
+              "Restart with existing realms: a change made in the console survives (the import does not overwrite)"
+            ],
+            "proofs": [
+              "Tenant OTP subflow set to DISABLED: The_tenant_realm_asks_for_an_otp_exactly_when_the_user_has_one fails at Assert.Equal"
+            ],
+            "found": [
+              "The first start (tables and import) took over two minutes locally, so Keycloak's health-check grace period went from 180 to 300 seconds"
+            ],
+            "open": [
+              "sslRequired was relaxed to external for the plain-HTTP loopback check only; TLS behaviour is checked behind the load balancer in S5",
+              "The JDBC verify-full connection to RDS is checked in S5 (the local database had no TLS)"
+            ]
+          }
+        },
+        {
+          "id": "M12-S4",
+          "title": "Release pipeline: build once on main, SBOM and provenance, OIDC only, migrate, previous-version check, roll, promote staging to prod by digest",
+          "status": "implemented",
+          "note": "Written and checked locally only; it first runs once the owner lifts the push hold (T-04).",
+          "criteria": [
+            9,
+            10,
+            11
+          ],
+          "verification": {
+            "date": "2026-10-23",
+            "ran": [
+              "dotnet format --verify-no-changes: clean",
+              "Release build of the solution: 0 warnings, 0 errors",
+              "Architecture 30/30 (5 new ReleaseWorkflowTests)",
+              "terraform fmt -check and validate (environment): pass; security-scan.ps1 -Only iac: pass",
+              "release.sh migrations-unchanged over the real history (first migration to HEAD): exit 0; an edited applied migration in a throwaway worktree: exit 1 naming the file; a snapshot-only change: exit 0"
+            ],
+            "proofs": [
+              "prod made to need only build: Prod_runs_after_staging_with_the_same_digests fails at Assert.Contains"
+            ],
+            "open": [
+              "Nothing has run on GitHub or AWS: no remote (push on hold), no applied stacks",
+              "Criterion 9's refusal of another branch's or environment's token, and criterion 10's attestation verification, are observed only on the first real run (S5)",
+              "Resolved 2026-10-23: the CA bundle is committed as deploy/docker/certs/rds-ca-ap-south-1.crt (the first copy, a .pem, was silently excluded by the *.pem secret rule in .gitignore)"
+            ]
+          }
+        },
+        {
+          "id": "M12-S5",
+          "title": "Apply, smoke checks, cross-tenant denial in the cloud, and rollback rehearsal",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "M13",
+      "title": "Disaster recovery",
+      "priority": "P3",
+      "goal": "A restore drill proves integrity and measures recovery time.",
+      "dependsOn": [
+        "M12"
+      ],
+      "decisions": [],
+      "specs": [],
+      "exitCriteria": [
+        {
+          "id": "M13-G1",
+          "text": "Restore drill verifies integrity and records measured recovery time against approved objectives",
+          "status": "planned"
+        }
+      ],
+      "slices": []
+    },
+    {
+      "id": "M14",
+      "title": "Advanced labs",
+      "priority": "Labs",
+      "goal": "Time-boxed comparisons, each ending in an ADR or an explicit not-adopted decision.",
+      "dependsOn": [
+        "M13"
+      ],
+      "decisions": [
+        6
+      ],
+      "specs": [],
+      "exitCriteria": [
+        {
+          "id": "M14-G1",
+          "text": "Each lab has a hypothesis, method, results, trade-offs, and an ADR or explicit not-adopted decision",
+          "status": "planned"
+        }
+      ],
+      "slices": [
+        {
+          "id": "M14-S1",
+          "title": "RabbitMQ vs Kafka",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S2",
+          "title": "Conventional persistence vs event sourcing",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S3",
+          "title": "Modular monolith vs service extraction",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S4",
+          "title": "EF Core vs Dapper/raw SQL",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S5",
+          "title": "Cache vs no cache",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S6",
+          "title": "AWS vs GCP deployment",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S7",
+          "title": "Managed containers vs Kubernetes",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S8",
+          "title": "Identity approaches",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S9",
+          "title": "REST vs gRPC",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S10",
+          "title": "Polling vs SignalR/SSE",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S11",
+          "title": "PostgreSQL search vs a dedicated engine",
+          "status": "planned"
+        },
+        {
+          "id": "M14-S12",
+          "title": "Failure drills",
+          "status": "planned"
+        }
+      ]
+    }
+  ],
+  "specs": [
+    {
+      "id": "0001",
+      "title": "Local platform and host foundation",
+      "milestone": "M1",
+      "file": "docs/specs/0001-local-platform.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "dev up: PostgreSQL healthy within 60 s on 127.0.0.1",
+          "slice": "M1-S1",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 2,
+          "label": ".env created from the example and git-ignored",
+          "slice": "M1-S1",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 3,
+          "label": "Docker unreachable: exits non-zero with the fix",
+          "slice": "M1-S1",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 4,
+          "label": "reset removes data only after confirmation",
+          "slice": "M1-S1",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 5,
+          "label": "All ports on 127.0.0.1; Grafana anonymous access off",
+          "slice": "M1-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Live 200 / ready 503 while PostgreSQL is down",
+          "slice": "M1-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Ready 200 while PostgreSQL is up",
+          "slice": "M1-S2",
+          "verified": true,
+          "how": "manual"
+        },
+        {
+          "n": 8,
+          "label": "Health responses show only the status word",
+          "slice": "M1-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Missing connection string fails startup, naming only the key",
+          "slice": "M1-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Worker serves only live and ready",
+          "slice": "M1-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "One heartbeat per interval: span, log, counter",
+          "slice": "M1-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Heartbeat stops within 5 s on shutdown",
+          "slice": "M1-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "A failing tick is logged; the next tick runs",
+          "slice": "M1-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Spans carry the service resource attributes",
+          "slice": "M1-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Logs carry the IDs of their span",
+          "slice": "M1-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 16,
+          "label": "Requests succeed with the collector unreachable",
+          "slice": "M1-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "dev smoke finds telemetry from both hosts",
+          "slice": "M1-S5",
+          "verified": true,
+          "how": "observed"
+        }
+      ]
+    },
+    {
+      "id": "0002",
+      "title": "Identity and tenant boundary",
+      "milestone": "M2",
+      "file": "docs/specs/0002-identity-and-tenant-boundary.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Migrator applies all migrations to an empty database; second run is a no-op",
+          "slice": "M2-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Each module's migrations stay in its own schema; no cross-schema foreign key",
+          "slice": "M2-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "App role owns nothing, is not superuser or BYPASSRLS, cannot run DDL or change audit rows",
+          "slice": "M2-S5a",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Database tests fail with instructions when PostgreSQL is unreachable; no test database remains",
+          "slice": "M2-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Valid tenant-audience token: GET /me returns issuer and subject",
+          "slice": "M2-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Invalid tokens (issuer, audience, key, alg, lifetime, none) return 401 without echoing the token",
+          "slice": "M2-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Missing authority or audience fails startup, naming only the key",
+          "slice": "M2-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Fallback policy denies endpoints without a policy; health stays anonymous",
+          "slice": "M2-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Tenant tokens rejected on /platform; platform tokens rejected on tenant routes",
+          "slice": "M2-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Keycloak healthy locally; dev smoke gets a token and GET /me returns 200",
+          "slice": "M2-S3",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 11,
+          "label": "Realm file holds synthetic users only; image pinned by tag and digest",
+          "slice": "M2-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Non-member gets 404 for another tenant, identical to an unknown or invalid id",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Every tenant route for another tenant returns 404, changes nothing, writes no audit",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Removed membership: 404; suspended tenant: 403 for members, 404 for non-members",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Tenant-owned use case without tenant context throws before touching data",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 16,
+          "label": "GET /me/memberships returns only the caller's active memberships (issuer + subject)",
+          "slice": "M2-S5a",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "Membership id from another tenant via own tenant route returns 404",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 18,
+          "label": "Customer cannot add, remove, or change roles (403)",
+          "slice": "M2-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 19,
+          "label": "Admin adds a member (201); duplicate active membership returns 409",
+          "slice": "M2-S5a",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 20,
+          "label": "Last administrator cannot be demoted or removed; concurrent demotions keep one admin",
+          "slice": "M2-S5a",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 21,
+          "label": "Each membership change writes exactly one audit row in the same transaction",
+          "slice": "M2-S5a",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 22,
+          "label": "Route-table test: every non-health endpoint has a tenant, platform, or /me policy",
+          "slice": "M2-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 23,
+          "label": "Auth failures logged without tokens; denial metric has only scheme and reason labels",
+          "slice": "M2-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 24,
+          "label": "Platform operator creates tenants and first admins; non-operators get 403; audited",
+          "slice": "M2-S5b",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 25,
+          "label": "Platform suspend and reactivate; illegal transitions return 409; audited",
+          "slice": "M2-S4",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0003",
+      "title": "Catalog and inventory",
+      "milestone": "M3",
+      "file": "docs/specs/0003-catalog-and-inventory.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Raw queries under tenant A cannot read or write tenant B rows",
+          "slice": "M3-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "No tenant set: no rows visible, inserts rejected",
+          "slice": "M3-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Pooled connection does not keep the previous tenant",
+          "slice": "M3-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "App role has no BYPASSRLS and owns nothing; RLS forced on tables",
+          "slice": "M3-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Create a product: 201 with Location",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Duplicate SKU in a tenant is 409; same SKU in another tenant succeeds",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Invalid input is 400 with field errors",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Update with ETag; stale ETag is 412",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Customers read active products only and cannot write",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Cross-tenant product access is 404",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Stock adjustment by signed delta",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Negative stock is 409 and the balance is unchanged",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "20 concurrent decrements of 10 units: exactly 10 succeed",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Adjusting an unknown or foreign product is 404",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Customers cannot read or adjust stock",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 16,
+          "label": "Cross-tenant stock access is 404",
+          "slice": "M3-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "Keyset pagination with opaque cursor and limits",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 18,
+          "label": "OpenAPI document matches the committed snapshot",
+          "slice": "M3-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 19,
+          "label": "Architecture tests for module boundaries",
+          "slice": "M3-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 20,
+          "label": "New routes covered by the isolation matrix",
+          "slice": "M3-S4",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0004",
+      "title": "Orders and inventory reservations",
+      "milestone": "M4",
+      "file": "docs/specs/0004-orders-and-reservations.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Reservation shows reserved and available",
+          "slice": "M4-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Reservation is all lines or none",
+          "slice": "M4-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Reserve and release are idempotent",
+          "slice": "M4-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Adjustments cannot go below reserved",
+          "slice": "M4-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "20 concurrent orders for the last unit: exactly one reserved",
+          "slice": "M4-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Create a draft order with price snapshot",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Invalid lines are rejected and nothing is written",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Replace lines with ETag; stale is 412",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Submit reserves stock or rejects the order",
+          "slice": "M4-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Cancel releases a reservation",
+          "slice": "M4-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Illegal transitions are 409 and change nothing",
+          "slice": "M4-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Repeating submit or cancel recovers an interrupted one",
+          "slice": "M4-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Another customer's order is 404; admin reads and cancels",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Cross-tenant order access is 404; RLS forced",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "OpenAPI, isolation matrix and architecture include Orders",
+          "slice": "M4-S2",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0005",
+      "title": "Messaging foundation",
+      "milestone": "M5",
+      "file": "docs/specs/0005-messaging-foundation.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Reserve and cancel write one outbox event each",
+          "slice": "M5-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Lost update or rollback writes no event",
+          "slice": "M5-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Payload holds ids, status, amounts; full envelope",
+          "slice": "M5-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Publisher claims bounded batches, marks after confirm",
+          "slice": "M5-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Two publishers never claim the same row",
+          "slice": "M5-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Crash before mark republishes the same message id",
+          "slice": "M5-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Broker down keeps rows pending; old published rows cleaned",
+          "slice": "M5-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Backlog and oldest-age metrics per module",
+          "slice": "M5-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Consumer records once; duplicate is a no-op",
+          "slice": "M5-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Consumer acts in the event tenant only; RLS forced",
+          "slice": "M5-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Invalid messages go straight to the dead-letter queue",
+          "slice": "M5-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Transient failures retried 5 times, then dead-lettered",
+          "slice": "M5-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Consumer span joins the API trace",
+          "slice": "M5-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Consumed counters and replay runbook",
+          "slice": "M5-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Orders.Contracts, Notifications in architecture tests, RabbitMQ in Compose",
+          "slice": "M5-S3",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0006",
+      "title": "Payment workflow",
+      "milestone": "M6",
+      "file": "docs/specs/0006-payment-workflow.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Owner pays a reserved order; amount from Orders; one event",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Same key replays; different body 422; in progress 409; per tenant",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Second payment for an order is 409; not payable is 409",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Cross-tenant and other customer 404; nothing stored",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Timeout or 5xx is unknown, shown as processing",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "A begun payment blocks cancel (409)",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Signed webhook moves the payment by the state table, one event",
+          "slice": "M6-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Bad signature or stale timestamp 401; bad body 400; nothing stored",
+          "slice": "M6-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Duplicate event id is a no-op; illegal transitions ignored",
+          "slice": "M6-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Webhook acts in no tenant unless the stored reference matches",
+          "slice": "M6-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Saga moves the order to paid, payment_failed (release) or review",
+          "slice": "M6-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Reconciliation settles unknown payments; review after 5 checks",
+          "slice": "M6-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Stuck submit resumed; unpaid order expires after 30 minutes",
+          "slice": "M6-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Simulator scripts every outcome; Stripe adapter and test-key guard",
+          "slice": "M6-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Payments in architecture, schema, RLS and outbox tests; no card data",
+          "slice": "M6-S1",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0007",
+      "title": "Subscriptions and refunds",
+      "milestone": "M7",
+      "file": "docs/specs/0007-subscriptions-and-refunds.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Admins create plans; others 403; bad input 400",
+          "slice": "M7-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Subscribe: trialing or incomplete, timer written; duplicate 409; card-shaped token 400",
+          "slice": "M7-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Subscriber or manager reads and cancels; others 404; cancel rules",
+          "slice": "M7-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Cross-tenant plans and subscriptions 404; nothing written",
+          "slice": "M7-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Renewal charges period n through Payments; period advances from the anchor",
+          "slice": "M7-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Repeated renewal job: no second payment, period advances once",
+          "slice": "M7-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Failed charge: past_due, 3 attempts a day apart, then cancelled; pending polled",
+          "slice": "M7-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Quartz runs due rows; a row failing 20 times is dead",
+          "slice": "M7-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "orders.manage refunds a paid order; audit fields; customer 403",
+          "slice": "M7-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Refunds never exceed the captured amount, also concurrently",
+          "slice": "M7-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Refund idempotency key replays; different body 422; in progress 409",
+          "slice": "M7-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Unknown refunds reconciled; signed refund webhooks settle them",
+          "slice": "M7-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Refund success moves the order to partially refunded or refunded",
+          "slice": "M7-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Cancelling a paid order refunds the rest once; failure restores the state",
+          "slice": "M7-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "Cross-tenant refunds 404; nothing written",
+          "slice": "M7-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 16,
+          "label": "requires_action is failed; UGX/ISK times 100",
+          "slice": "M7-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "Subscriptions in architecture, schema, role, RLS, isolation and Migrator tests",
+          "slice": "M7-S1",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0008",
+      "title": "Async files and reporting",
+      "milestone": "M8",
+      "file": "docs/specs/0008-async-files-and-reporting.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Search by words in name or SKU; visibility and paging kept; cross-tenant never; long q 400",
+          "slice": "M8-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Server keys, size and checksum recorded, traversal and foreign keys refused",
+          "slice": "M8-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Import submission: 202 queued, idempotent, 2 active max, 403/413/400",
+          "slice": "M8-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Import batches upsert by SKU, row errors without values, header and row limits",
+          "slice": "M8-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Import resumes from its checkpoint without duplicates",
+          "slice": "M8-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Import status and errors for the tenant; others 404",
+          "slice": "M8-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Export streams every product to a CSV; download; restart on crash",
+          "slice": "M8-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Formula cells neutralized on export, restored on import",
+          "slice": "M8-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Cross-tenant jobs and files 404",
+          "slice": "M8-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Files expire; abandoned uploads fail",
+          "slice": "M8-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Cron metrics from due rows; outcome counters",
+          "slice": "M8-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "ImportsExports in architecture, schema, role, RLS, isolation and Migrator tests",
+          "slice": "M8-S2",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0009",
+      "title": "Security and privacy",
+      "milestone": "M9",
+      "file": "docs/specs/0009-security-and-privacy.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Threat model per exposed workflow; every action tracked and checked",
+          "slice": "M9-S1",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "One audit record per committed audited action; none on rollback or redelivery; no personal data",
+          "slice": "M9-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Audit records cannot be updated or deleted except by the retention function",
+          "slice": "M9-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "audit.read holders read their tenant's audit; customer 403; others 404",
+          "slice": "M9-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Platform admins read the platform audit; support 403; tenant token 401",
+          "slice": "M9-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Broker down: audited change commits; record arrives later",
+          "slice": "M9-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Every table classified with a retention rule; a missing table fails a test",
+          "slice": "M9-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Expired rows deleted per tenant in bounded batches; rows inside the window kept",
+          "slice": "M9-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Removed memberships pseudonymised after 30 days; references kept",
+          "slice": "M9-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Audit records past retention deleted only by the purge function",
+          "slice": "M9-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Jobs end when the tenant is suspended or the requester loses the right",
+          "slice": "M9-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Storage modes 0600/0700, flush before rename, stale temp files swept",
+          "slice": "M9-S5",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Security scan: secrets, dependencies, images, configuration; dated exceptions",
+          "slice": "M9-S6",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "CI security job defined with least privilege (not run: CI on hold)",
+          "slice": "M9-S6",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 15,
+          "label": "platform-admin and support-operator roles; no implicit authority; platform route matrix",
+          "slice": "M9-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 16,
+          "label": "Support grant with ticket and at most 240 minutes; audited; 404/400/409",
+          "slice": "M9-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "Support views need an active own grant; access audited before the read; read-only",
+          "slice": "M9-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 18,
+          "label": "Ended or revoked grants deny the next access; audited",
+          "slice": "M9-S7",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 19,
+          "label": "API and Worker log EF Core at Warning outside Development",
+          "slice": "M9-S5",
+          "verified": true,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0010",
+      "title": "Production observability",
+      "milestone": "M10",
+      "file": "docs/specs/0010-production-observability.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Golden-signal dashboard: rate, 4xx/5xx, p50/p95/p99 per route; saturation per host",
+          "slice": "M10-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "Database command spans with statement text and no parameter values",
+          "slice": "M10-S2",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Worker dashboard: queues, dead letters, outbox age, job runs and lateness, dead timers",
+          "slice": "M10-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Business dashboard: payments, unknown results, refunds, reversals, conflicts, imports and exports",
+          "slice": "M10-S3",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "Meter tag outside the allow-list or a GUID tag value fails a test",
+          "slice": "M10-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "No query-string value in exported server span attributes",
+          "slice": "M10-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "Planted value in a third-party exception message or a log scope is not exported",
+          "slice": "M10-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Loki, Tempo and Prometheus keep 7 days of data",
+          "slice": "M10-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "One SLO document per journey with every section 16 field; sync and async separate",
+          "slice": "M10-S4",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Alert rules fire on harm and stay quiet on healthy series and short spikes (promtool)",
+          "slice": "M10-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Page alerts: refund reversal, dead timer, dead letters, stale outbox, late or failing job, failed retention",
+          "slice": "M10-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Security alert on a not_a_member denial spike, without tenant id or subject",
+          "slice": "M10-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Healthy stack under smoke traffic: no alert firing",
+          "slice": "M10-S5",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "Fault drills: alert fires, runbook leads to the trace and logs; times recorded",
+          "slice": "M10-S6",
+          "verified": true,
+          "how": "observed"
+        },
+        {
+          "n": 15,
+          "label": "Section 19 runbooks follow the section 22 template; every query returns data",
+          "slice": "M10-S6",
+          "verified": true,
+          "how": "observed"
+        }
+      ]
+    },
+    {
+      "id": "0012",
+      "title": "Cloud deployment",
+      "milestone": "M12",
+      "file": "docs/specs/0012-cloud-deployment.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "Terraform fmt and validate pass; a planted public database fails the IaC scan",
+          "slice": "M12-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "No state or secret tfvars in the repository; one state object and lock per environment",
+          "slice": "M12-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Same tfvars keys in every environment; Production everywhere; no per-environment appsettings",
+          "slice": "M12-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "No database-role or Keycloak password in applied state",
+          "slice": "M12-S5",
+          "verified": false,
+          "how": "observed"
+        },
+        {
+          "n": 5,
+          "label": "App and owner roles over TLS; app role refused DDL and RLS bypass in RDS",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "Cross-tenant request on staging returns 404 with no data",
+          "slice": "M12-S5",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "AMQPS with certificate validation as a non-administrator user; 5672 and management refused",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "Files through the S3 adapter; TLS-only bucket; cross-tenant download denied",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Images pushed only from main via OIDC; deploy roles bound to their GitHub environment; no access keys",
+          "slice": "M12-S4",
+          "verified": false,
+          "how": "observed"
+        },
+        {
+          "n": 10,
+          "label": "SBOM and provenance per image; prod digest equals the staging digest",
+          "slice": "M12-S4",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "Migrator before rollout; previous version passes smoke on the new schema; migrations unchanged",
+          "slice": "M12-S4",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "Smoke checks: ready, one call per realm, admin console 403 from outside, HTTP redirects",
+          "slice": "M12-S5",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Unhealthy revision rolled back by ECS; manual rollback rehearsed and timed",
+          "slice": "M12-S5",
+          "verified": false,
+          "how": "observed"
+        },
+        {
+          "n": 14,
+          "label": "Platform realm refuses sign-in without OTP",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 15,
+          "label": "$100 monthly budget with 80% actual and 100% forecast alarms",
+          "slice": "M12-S2",
+          "verified": false,
+          "how": "observed"
+        },
+        {
+          "n": 16,
+          "label": "Storage provider chosen explicitly; missing keys or an unswitched filesystem refuse start, naming the key",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 17,
+          "label": "Deployed API and Worker get s3, the bucket and region, no storage credential; the Migrator none",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 18,
+          "label": "S3 adapter keeps the storage port's promises against S3Mock; changed objects fail their checksum",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 19,
+          "label": "Cross-tenant file open or delete through the S3 adapter is denied; the object stays",
+          "slice": "M12-S3",
+          "verified": false,
+          "how": "automated"
+        }
+      ]
+    },
+    {
+      "id": "0015",
+      "title": ".NET 10 toolchain migration",
+      "milestone": "none",
+      "file": "docs/specs/0015-dotnet-10-toolchain-migration.md",
+      "criteria": [
+        {
+          "n": 1,
+          "label": "global.json pins a 10.0.4xx SDK",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 2,
+          "label": "An older SDK fails to resolve rather than building quietly",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 3,
+          "label": "Every project targets net10.0 at AnalysisLevel 10.0-recommended",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 4,
+          "label": "Release build and dotnet format are clean, warnings as errors",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 5,
+          "label": "The solution's unit, API and architecture tests pass",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 6,
+          "label": "No host hand-declares the entry point .NET 10 generates",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 7,
+          "label": "No runtime-aligned package is left on the 9 line, no high or critical advisory",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 8,
+          "label": "EF Core 10 reports no pending model changes and no migration is edited",
+          "slice": "SPEC0015-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 9,
+          "label": "Database and row-level-security tests pass",
+          "slice": "SPEC0015-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 10,
+          "label": "Messaging tests and rule tests pass",
+          "slice": "SPEC0015-S2",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 11,
+          "label": "The OpenAPI document and the route table match, differences recorded",
+          "slice": "SPEC0015-S1",
+          "verified": true,
+          "how": "automated"
+        },
+        {
+          "n": 12,
+          "label": "The three images build on 10.0 base digests and start",
+          "slice": "SPEC0015-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 13,
+          "label": "Smoke tests and drills pass",
+          "slice": "SPEC0015-S3",
+          "verified": false,
+          "how": "automated"
+        },
+        {
+          "n": 14,
+          "label": "No .NET 9 toolchain reference is left outside ADR history",
+          "slice": "SPEC0015-S4",
+          "verified": false,
+          "how": "automated"
+        }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-01",
+      "title": "Approve the start of M2",
+      "milestone": "M2",
+      "status": "done",
+      "owner": "you",
+      "note": "2026-10-19: approved; branch m2-identity-tenant-boundary."
+    },
+    {
+      "id": "T-02",
+      "title": "Decide the four Claude setup proposals from the M1 gate",
+      "milestone": "M2",
+      "status": "done",
+      "owner": "you",
+      "note": "2026-10-19: (a) slice proof rules, (b) .claude/rules/tests.md, (c) tenant-isolation-review skill adopted; (d) push stays on hold (T-04)."
+    },
+    {
+      "id": "T-03",
+      "title": "Decide the four roadmap sequencing notes",
+      "milestone": "M2",
+      "status": "done",
+      "owner": "you",
+      "note": "2026-10-19: all four accepted (owner delegated; recommendations adopted)."
+    },
+    {
+      "id": "T-16",
+      "title": "Accept or amend ADR-0009 to ADR-0012",
+      "milestone": "M2",
+      "status": "done",
+      "owner": "you",
+      "note": "Identity provider, trust boundaries, row-level security, module data ownership. All Proposed."
+    },
+    {
+      "id": "T-17",
+      "title": "Answer SPEC-0002 open questions and approve it",
+      "milestone": "M2",
+      "status": "done",
+      "owner": "you",
+      "note": "Tenant creation, platform operator authority, denial status codes, spec size."
+    },
+    {
+      "id": "T-18",
+      "title": "Accept or amend ADR-0013 (use-case dispatch) and ADR-0014 (validation)",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "Both Proposed in M2-S4; they close Open Decisions 15 and 17."
+    },
+    {
+      "id": "T-19",
+      "title": "Tenant names are unique (case-insensitive, trimmed)",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "claude",
+      "note": "Decided 2026-10-21: unique on lower(name), 409 tenant.name_taken, suspended names stay taken. Spec criterion 26; verified, uncommitted: verify.ps1 -Database 77/67/12/123 and Database 110/110 (3 runs), 0 warnings; 7 break-it proofs (store mapping, case-sensitive index, active-only index, no index, no pre-check, unescaped wildcards)."
+    },
+    {
+      "id": "T-20",
+      "title": "Pre-S5 review 2.1 API versioning: accept ADR-0015",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "URL segment /v1, hand-rolled; SPEC-0002 paths amended. Implemented and verified; ADR is Proposed."
+    },
+    {
+      "id": "T-21",
+      "title": "Pre-S5 review 2.2 to 2.10, 3 and 4: error handling, response and error codes, validation, auth review, configuration, middleware, Program.cs, domain, conventions document",
+      "milestone": "M2",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Done: step 1 structure (82fea3d), 2.1 versioning (baba5a1), 2.2/2.3/2.5 error handling (b2c345f), 2.4 request validation (6323cb4), 2.6 authentication hardening (64ea7f2), 2.7-2.9 configuration, pipeline and Program.cs (dcacb69), 2.10 domain layer (de39264), 3 solution-wide review (7bd6365), 4 conventions document (uncommitted). Pending: none, review complete once item 4 is committed. One at a time, before S5."
+    },
+    {
+      "id": "T-22",
+      "title": "Pre-S5 review 2.2/2.3/2.5 error handling: accept ADR-0016",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "Problem Details with code, traceId and errors[]; AppException in BuildingBlocks.Abstractions; one middleware; honest 405/415. Implemented and verified; ADR is Proposed."
+    },
+    {
+      "id": "T-23",
+      "title": "Identity provider outage answers 401, not 503",
+      "milestone": "M2",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Found in pre-S5 review 2.6: while the provider is unreachable, token-bearing requests get 401 (the library reports an invalid token) and the first few wait for the 10 s timeout. 503 authentication.unavailable needs a wrapper around the configuration manager; revisit with alerting in M10."
+    },
+    {
+      "id": "T-24",
+      "title": "Pre-S5 review 2.7-2.9: accept ADR-0017 (pipeline, host composition, configuration policy)",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "Implemented and verified; ADR is Proposed."
+    },
+    {
+      "id": "T-25",
+      "title": "Rate limiting, forwarded headers, CORS and OpenAPI exposure are deliberately absent from the API pipeline",
+      "milestone": "M11",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Each has an owner in ADR-0017 section 4. Rate limiting needs the trusted-proxy and per-tenant/identity decisions first."
+    },
+    {
+      "id": "T-26",
+      "title": "Strongly typed ids (TenantId, MembershipId)",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "Decided 2026-10-19: typed ids inside IdentityAccess only; Tenants keeps Guid. Revisit if a third module needs a tenant id type."
+    },
+    {
+      "id": "T-27",
+      "title": "Watch HeartbeatRecorderTests for a rare flake under whole-solution coverage",
+      "milestone": "M2",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Failed in 2 of about 6 whole-solution runs right after a build (message not captured); never in 15 isolated or later runs. Cause unconfirmed. Suspected: the span listener is process-wide and filtered by sequence 7, which a heartbeat loop in another test could also reach. The test now uses a sequence no loop reaches. If it fails again, capture the failure message before changing anything else."
+    },
+    {
+      "id": "T-28",
+      "title": "Decide on ADR-0018 (per-tenant advisory lock for membership changes)",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "you",
+      "note": "Proposed at S5a. Replaces the spec wording tenant-level row lock, because IdentityAccess owns no tenant row (ADR-0012)."
+    },
+    {
+      "id": "T-29",
+      "title": "S6 must take the member issuer from configuration, and S5b must check the tenant exists",
+      "milestone": "M2",
+      "status": "done",
+      "attention": false,
+      "owner": "claude",
+      "note": "S5b now checks the tenant and takes the issuer from the tenant scheme's Authority, assuming it equals the token iss (true for the test issuer and Keycloak; an IdP with a trailing-slash difference would need the metadata issuer). AddAsync itself still trusts its caller: the S6 member routes must take the issuer from configuration and check the tenant."
+    },
+    {
+      "id": "T-04",
+      "title": "Push to GitHub and run CI for the first time",
+      "milestone": "M0",
+      "status": "on_hold",
+      "attention": false,
+      "owner": "you",
+      "note": "On hold by the owner, confirmed again 2026-10-22 for M12 (\"do not push anything\"). Needed to verify M0-S4, to run the built-in /security-review, and for M12-S4 (SPEC-0012 criteria 9 to 11). History scanned clean by gitleaks on 2026-10-22."
+    },
+    {
+      "id": "T-05",
+      "title": "Configure branch protection on main",
+      "milestone": "M0",
+      "status": "on_hold",
+      "attention": false,
+      "owner": "you",
+      "note": "Follows T-04."
+    },
+    {
+      "id": "T-06",
+      "title": "Move to .NET 10 LTS (ADR-0005 checklist)",
+      "milestone": "M0",
+      "status": "on_hold",
+      "attention": false,
+      "owner": "you",
+      "note": "Owner is aware; scheduled by the owner."
+    },
+    {
+      "id": "T-07",
+      "title": "Explain why an unrouted test request sometimes exports no span",
+      "milestone": "M1",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Test-host behaviour; production unaffected. Noted in TelemetryTests. Seen again 2026-10-19 on a routed POST (about 1 run in 4): the trace id is on the request, but OpenTelemetry's export sometimes never reaches the capture processor. New tests use their own ActivityListener instead."
+    },
+    {
+      "id": "T-08",
+      "title": "Make Docker in WSL start automatically",
+      "milestone": "M1",
+      "status": "pending",
+      "attention": false,
+      "owner": "you",
+      "note": "wsl --update did not install the current WSL; systemd is not running."
+    },
+    {
+      "id": "T-09",
+      "title": "Automate SPEC-0001 criterion 7 with Testcontainers",
+      "milestone": "M3",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Depends on Open Decision 21."
+    },
+    {
+      "id": "T-10",
+      "title": "Test readiness timeout when packets are silently dropped",
+      "milestone": "M11",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude"
+    },
+    {
+      "id": "T-11",
+      "title": "Silence Grafana's blocked update-check log line",
+      "milestone": "M10",
+      "status": "pending",
+      "attention": false,
+      "owner": "claude",
+      "note": "Cosmetic; caused by the corporate TLS proxy."
+    },
+    {
+      "id": "T-12",
+      "title": "Move the blueprint into the repository",
+      "milestone": "M0",
+      "status": "done",
+      "owner": "claude"
+    },
+    {
+      "id": "T-13",
+      "title": "Project-specific Claude Code setup (ADR-0006)",
+      "milestone": "M0",
+      "status": "done",
+      "owner": "claude"
+    },
+    {
+      "id": "T-14",
+      "title": "Stop readiness failures from flooding logs",
+      "milestone": "M1",
+      "status": "done",
+      "owner": "claude",
+      "note": "Done in M1-S4."
+    },
+    {
+      "id": "T-15",
+      "title": "Merge M1 into main",
+      "milestone": "M1",
+      "status": "done",
+      "owner": "claude",
+      "note": "f98a0c8"
+    },
+    {
+      "id": "T-30",
+      "title": "Run M11 after M12",
+      "milestone": "M11",
+      "status": "on_hold",
+      "attention": false,
+      "owner": "you",
+      "note": "Owner decision 2026-10-22: M12 runs before M11 (roadmap sequencing note 5). M12 sizing and SLO targets stay provisional until the M11 baseline; SC-A13 and DP-A26 moved from M11 to M12."
+    },
+    {
+      "id": "T-31",
+      "title": "Align the Testcontainers PostgreSQL image with Compose",
+      "milestone": "M12",
+      "status": "done",
+      "attention": false,
+      "owner": "claude",
+      "note": "2026-10-23: the CI database-test fixture pinned postgres:17.10 while Compose pins 17.11; aligned, and ContainerImageTests now fails on any drift."
+    },
+    {
+      "id": "T-32",
+      "title": "Implement SPEC-0013 (local environment tooling)",
+      "milestone": "M12",
+      "status": "done",
+      "attention": false,
+      "owner": "claude",
+      "note": "2026-10-23: SPEC-0013 approved with the recommended answers; ADR-0036 stays Proposed until the slices land (user decision, 2026-10-23); then the user decides on acceptance. The user started the slices on 2026-10-23, alongside M12. S1 done (dev.ps1 dispatcher, scripts/dev/, scripts/lib/Docker.psm1); S2 done (tools/TenantFlow.DevSetup: env, user-secrets); S3 done (roles and Keycloak dev passwords in the tool); S4 done (db-tests in the tool; 328 database tests green against an isolated stack). Merged into main (4222d6a); from the main checkout: dev.ps1 up, Migrator, API and Worker live, smoke 14/14. Spec Implemented; validate negative case not shown (planting refused). ADR-0036 accepted by the user (2026-10-23); Aspire spike after the ADR-0005 migration."
+    },
+    {
+      "id": "T-33",
+      "title": "No host scripts (ADR-0037)",
+      "milestone": "M12",
+      "status": "done",
+      "attention": true,
+      "owner": "you",
+      "note": "2026-10-23, asked for by the user in three steps (script-free setup; checks out of scripts; no OS-dependent scripts): docker compose up -d --wait sets the environment up (Compose defaults, roles at volume init, Migrator service, realm placeholders; hosts read local-only defaults from appsettings.Development.json); the gate is dotnet test TenantFlow.sln -c Release; database, smoke, security and drill checks are test projects; the dashboard is tools/TenantFlow.Progress. scripts/ and the setup tool are gone. ADR-0037 is Proposed and amends ADR-0008: the user decides. Pre-existing scan findings for the user: five workflow write permissions, CVE-2026-114406 in the Keycloak image."
+    },
+    {
+      "id": "T-34",
+      "title": "Sign-in from the local API reference (SPEC-0014)",
+      "milestone": "M12",
+      "status": "done",
+      "owner": "claude",
+      "note": "2026-10-23, approved by the user with every recommended answer. S1 done: docs clients tenantflow-api-docs and tenantflow-platform-api-docs (public, authorization code with PKCE S256, redirect and origin only http://localhost:5080); RealmClientTests (criteria 4, 5) and the smoke test Keycloak_accepts_the_reference_sign_in_only_from_the_api_origin (criteria 5, 6), proven by widening webOrigins to *. S2 done: Scalar Authorize with both schemes (PKCE; client ids in the Development document only), CSP connect-src exactly the issuer origins, memory-only token; ApiReferenceTests, proven by dropping the Development check. ADR-0009 amendment 1 Accepted. Token exchange confirmed by the user in a desktop browser."
+    },
+    {
+      "id": "T-35",
+      "title": ".NET 10 toolchain migration (SPEC-0015)",
+      "milestone": "M12",
+      "status": "in_progress",
+      "owner": "claude",
+      "note": "2026-10-24, SPEC-0015 approved by the user with every recommended answer; closes ADR-0005 and threat row SC-A13. S1 done: SDK 10.0.402 pinned with latestPatch (the user installed it), net10.0, AnalysisLevel 10.0-recommended, runtime-aligned packages to 10.0.13, Npgsql and its provider to 10.0.3, Test SDK 18.10.1, both hand-written Program declarations removed. ToolchainTests (criteria 1, 2, 3, 6, 7) proven by all five failing at assertions on .NET 9. Build and dotnet format clean with 0 warnings; Api 151/151, Worker 20/20 twice. Four deviations recorded in the spec: IsTestingPlatformApplication=false because the .NET 10 SDK refuses VSTest for Microsoft.Testing.Platform apps (ADR-0038 Proposed); MembersResponse.Item and MyMembershipsResponse.Item renamed to Member and Membership because the .NET 10 OpenAPI generator collided them onto one schema and published the wrong fields; PlatformHeartbeatService creates its PeriodicTimer with the service because .NET 10 defers ExecuteAsync past StartAsync; OutboxAccessTests skips the generated OpenAPI XML comment cache. Not committed: C:\\TenantFlow is not a git repository. S2 to S4 remain. S3 and S4 implemented 2026-10-24 at the user's instruction, outside the skills and with no tests written or run: Dockerfile SDK, ASP.NET and runtime bases moved to the 10.0 tags pinned by digest; ADR-0003 marked adopted, ADR-0005 Superseded, ADR-0038 Proposed and indexed; threat row SC-A13 closed and its gap line removed; Open Decision 10, README, CONTRIBUTING, the issue template, AGENTS.md, the M0 guide, the roadmap and risk R-03 updated. NOT VERIFIED: no image was built, no smoke test or drill ran, and criteria 8 to 10, 12 and 13 are unproven. S2 has no code: it is a verification slice, and its only non-test criterion (11) landed in S1."
+    }
+  ],
+  "risks": [
+    {
+      "id": "R-01",
+      "title": "CI has never run: a clean checkout is verified only locally",
+      "severity": "medium",
+      "status": "on_hold",
+      "milestone": "M0",
+      "mitigation": "First push and CI run (T-04), when the owner decides."
+    },
+    {
+      "id": "R-02",
+      "title": "Built-in /security-review cannot run without a remote, before the security-heavy M2",
+      "severity": "medium",
+      "status": "open",
+      "milestone": "M2",
+      "mitigation": "Push before M2, or run a manual security pass per slice as in M1-S2."
+    },
+    {
+      "id": "R-03",
+      "title": "Temporary .NET 9 toolchain",
+      "severity": "low",
+      "status": "closed",
+      "milestone": "M0",
+      "mitigation": "Closed 2026-10-24: SPEC-0015 moved the build to SDK 10.0.402 and superseded ADR-0005."
+    },
+    {
+      "id": "R-04",
+      "title": "Test-host quirk can hide missing spans in tests",
+      "severity": "low",
+      "status": "open",
+      "milestone": "M1",
+      "mitigation": "Tests use a middleware probe; investigate before relying on 404 spans (T-07)."
+    },
+    {
+      "id": "R-05",
+      "title": "Local Docker does not start by itself",
+      "severity": "low",
+      "status": "open",
+      "milestone": "M1",
+      "mitigation": "dev.ps1 explains the fix; T-08."
+    }
+  ],
+  "components": [
+    {
+      "id": "build",
+      "name": "Build and dependency policy",
+      "milestone": "M0",
+      "status": "verified",
+      "evidence": "Pinned SDK, central packages, lock files, analyzers; verify.ps1."
+    },
+    {
+      "id": "ci",
+      "name": "CI pipeline",
+      "milestone": "M0",
+      "status": "partial",
+      "evidence": "Workflow written; never run (no remote)."
+    },
+    {
+      "id": "health",
+      "name": "Health and readiness",
+      "milestone": "M1",
+      "status": "verified",
+      "evidence": "SPEC-0001 criteria 6–10."
+    },
+    {
+      "id": "config",
+      "name": "Configuration and local secrets",
+      "milestone": "M1",
+      "status": "verified",
+      "evidence": "ADR-0008; startup validation tests."
+    },
+    {
+      "id": "observability",
+      "name": "Observability (OpenTelemetry, Prometheus, Loki, Tempo, Grafana)",
+      "milestone": "M1",
+      "status": "verified",
+      "evidence": "SPEC-0001 criteria 14–17; dashboards and alerts in M10."
+    },
+    {
+      "id": "database",
+      "name": "Database (PostgreSQL)",
+      "milestone": "M3",
+      "status": "partial",
+      "evidence": "Local container and readiness check (M1). Schema, migrations, and least-privilege roles in M3."
+    },
+    {
+      "id": "authn",
+      "name": "Authentication (OIDC)",
+      "milestone": "M2",
+      "status": "not_started"
+    },
+    {
+      "id": "tenancy",
+      "name": "Tenant isolation",
+      "milestone": "M2",
+      "status": "not_started"
+    },
+    {
+      "id": "authz",
+      "name": "Authorization (permissions and policies)",
+      "milestone": "M2",
+      "status": "not_started"
+    },
+    {
+      "id": "modules",
+      "name": "Module boundaries (architecture tests)",
+      "milestone": "M3",
+      "status": "not_started"
+    },
+    {
+      "id": "messaging",
+      "name": "Messaging, outbox, idempotent consumers",
+      "milestone": "M5",
+      "status": "not_started"
+    },
+    {
+      "id": "payments",
+      "name": "Payments and reconciliation",
+      "milestone": "M6",
+      "status": "not_started"
+    },
+    {
+      "id": "audit",
+      "name": "Audit trail",
+      "milestone": "M9",
+      "status": "not_started"
+    },
+    {
+      "id": "deployment",
+      "name": "Cloud deployment and CD",
+      "milestone": "M12",
+      "status": "not_started"
+    },
+    {
+      "id": "dr",
+      "name": "Backup and disaster recovery",
+      "milestone": "M13",
+      "status": "not_started"
+    }
+  ],
+  "qualityGates": [
+    {
+      "id": "build",
+      "name": "Release build, warnings as errors",
+      "kind": "build",
+      "since": "M0",
+      "live": "verify"
+    },
+    {
+      "id": "format",
+      "name": "Formatting and code style",
+      "kind": "build",
+      "since": "M0",
+      "live": "verify"
+    },
+    {
+      "id": "nuget-audit",
+      "name": "NuGet audit (lock files removed 2026-10-23)",
+      "kind": "supply chain",
+      "since": "M0",
+      "live": "verify"
+    },
+    {
+      "id": "host-tests",
+      "name": "Unit and in-memory host tests (xUnit)",
+      "kind": "tests",
+      "since": "M0",
+      "live": "tests"
+    },
+    {
+      "id": "coverage",
+      "name": "Coverage report (no threshold yet)",
+      "kind": "tests",
+      "since": "M0",
+      "live": "coverage"
+    },
+    {
+      "id": "compose",
+      "name": "Compose validation (loopback-only ports)",
+      "kind": "infrastructure",
+      "since": "M1",
+      "live": "compose"
+    },
+    {
+      "id": "smoke",
+      "name": "Local telemetry smoke check (tests/Smoke)",
+      "kind": "operations",
+      "since": "M1",
+      "recorded": {
+        "date": "2026-10-19",
+        "result": "passed",
+        "detail": "7/7 at the M1 gate"
+      }
+    },
+    {
+      "id": "ci-run",
+      "name": "CI run on GitHub",
+      "kind": "pipeline",
+      "since": "M0",
+      "state": "on_hold"
+    },
+    {
+      "id": "integration",
+      "name": "Integration tests against real PostgreSQL (Testcontainers)",
+      "kind": "tests",
+      "plannedIn": "M3"
+    },
+    {
+      "id": "architecture",
+      "name": "Architecture tests (module boundaries)",
+      "kind": "tests",
+      "plannedIn": "M3"
+    },
+    {
+      "id": "contract",
+      "name": "API and event contract checks (OpenAPI)",
+      "kind": "tests",
+      "plannedIn": "M3"
+    },
+    {
+      "id": "tenant-isolation",
+      "name": "Cross-tenant denial tests",
+      "kind": "security",
+      "plannedIn": "M2"
+    },
+    {
+      "id": "security-scans",
+      "name": "Secret, SAST, container, and IaC scanning",
+      "kind": "security",
+      "plannedIn": "M9"
+    },
+    {
+      "id": "e2e",
+      "name": "End-to-end workflow tests",
+      "kind": "tests",
+      "plannedIn": "M6"
+    },
+    {
+      "id": "resilience",
+      "name": "Fault-injection and resilience tests",
+      "kind": "resilience",
+      "plannedIn": "M11"
+    },
+    {
+      "id": "performance",
+      "name": "k6 performance baseline",
+      "kind": "performance",
+      "plannedIn": "M11"
+    }
+  ]
+}

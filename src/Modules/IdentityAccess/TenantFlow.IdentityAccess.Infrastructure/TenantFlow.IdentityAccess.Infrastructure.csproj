@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- IdentityAccess module persistence. Owns the PostgreSQL schema "identity_access" (ADR-0012). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.IdentityAccess.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Design-time only (dotnet ef migrations); never flows to the hosts. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <!-- The outbox row and its mapping (ADR-0021): audit events leave the module through its own outbox (ADR-0026). -->
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Messaging\TenantFlow.BuildingBlocks.Messaging.csproj" />
+    <!-- The retention rule type (ADR-0025). -->
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Persistence\TenantFlow.BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="..\TenantFlow.IdentityAccess.Application\TenantFlow.IdentityAccess.Application.csproj" />
+  </ItemGroup>
+
+</Project>

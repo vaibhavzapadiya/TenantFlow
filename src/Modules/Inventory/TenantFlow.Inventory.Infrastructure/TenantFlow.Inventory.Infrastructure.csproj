@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Inventory module persistence. Owns the PostgreSQL schema "inventory" (ADR-0012). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Inventory.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Design-time only (dotnet ef migrations); never flows to the hosts. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Persistence\TenantFlow.BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="..\TenantFlow.Inventory.Application\TenantFlow.Inventory.Application.csproj" />
+    <ProjectReference Include="..\TenantFlow.Inventory.Contracts\TenantFlow.Inventory.Contracts.csproj" />
+    <ProjectReference Include="..\TenantFlow.Inventory.Domain\TenantFlow.Inventory.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

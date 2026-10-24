@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Audit module domain: an append-only audit record (ADR-0026). No HTTP, broker, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Audit.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

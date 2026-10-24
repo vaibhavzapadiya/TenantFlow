@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- RabbitMQ adapter for the messaging building blocks (ADR-0021), on RabbitMQ.Client directly. Hosts only. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Messaging.RabbitMq</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TenantFlow.BuildingBlocks.Messaging\TenantFlow.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

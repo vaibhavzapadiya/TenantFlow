@@ -1,0 +1,19 @@
+# Alertmanager (local observability profile, ADR-0029, SPEC-0010 decision 7). Locally nothing is delivered: the receiver
+# is null and the drills read GET /api/v2/alerts. A real receiver (chat or on-call) arrives with deployment (M12).
+route:
+  receiver: "null"
+  # One notification per failing dependency (database, broker, provider, api, worker), not one per symptom.
+  group_by: [dependency, alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: "null"
+
+# While a cause fires (a dependency or a host is down), the symptoms it produces are inhibited: stale outbox, failing or
+# late jobs, API errors, stuck payments, SLO burn. Events (refund reversed, dead timer, dead letters, failed retention,
+# cross-tenant probing) are never inhibited: each needs a person whatever else is down.
+inhibit_rules:
+  - source_matchers: ['category="cause"']
+    target_matchers: ['category="symptom"']

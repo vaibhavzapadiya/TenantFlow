@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The security scans of SPEC-0009 criterion 13 (ADR-0028): secrets, dependencies, images, configuration and
+    infrastructure as code. The scanners run as containers pinned by digest; findings the exceptions register names are
+    skipped. Needs Docker and the network; run with "dotnet run" on this project in Release, as CI's security job does.
+    IsTestProject is false so the default gate (dotnet test on the solution) builds this project but does not run it.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Security.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+    <Using Include="TenantFlow.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\TenantFlow.Testing\TenantFlow.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Api</RootNamespace>
+    <!-- Development only: overrides appsettings.Development.json, for example after changing deploy/compose/.env (ADR-0008). -->
+    <UserSecretsId>tenantflow-api-5d0c2f6e-3b1a-4c8e-9f0d-2a7b6c4e8d11</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The IDE HTTP client's local environment: an editor aid, never part of the build output or an image. -->
+    <Content Update="http-client.env.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TenantFlow.Api.Tests" />
+    <InternalsVisibleTo Include="TenantFlow.Database.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\Tenants\TenantFlow.Tenants.Infrastructure\TenantFlow.Tenants.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\IdentityAccess\TenantFlow.IdentityAccess.Infrastructure\TenantFlow.IdentityAccess.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Catalog\TenantFlow.Catalog.Infrastructure\TenantFlow.Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventory\TenantFlow.Inventory.Infrastructure\TenantFlow.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Orders\TenantFlow.Orders.Infrastructure\TenantFlow.Orders.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Payments\TenantFlow.Payments.Infrastructure\TenantFlow.Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Subscriptions\TenantFlow.Subscriptions.Infrastructure\TenantFlow.Subscriptions.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\ImportsExports\TenantFlow.ImportsExports.Infrastructure\TenantFlow.ImportsExports.Infrastructure.csproj" />
+    <!-- The audit log reads, and the audit actor the platform endpoints pass to the use cases (ADR-0026). -->
+    <ProjectReference Include="..\..\Modules\Audit\TenantFlow.Audit.Infrastructure\TenantFlow.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Operations\TenantFlow.Operations.Infrastructure\TenantFlow.Operations.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Observability\TenantFlow.BuildingBlocks.Observability.csproj" />
+  </ItemGroup>
+
+</Project>

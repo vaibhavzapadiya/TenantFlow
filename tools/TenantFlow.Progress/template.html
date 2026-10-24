@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TenantFlow Progress</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f1f3f6; --text: #1b1f24; --muted: #5d6673; --line: #dfe3e8;
+  --accent: #3b5bdb; --ok: #2b8a3e; --ok-bg: #e6f4ea; --info: #1c6ea4; --info-bg: #e3f0fa;
+  --warn: #b35c00; --warn-bg: #fff1dd; --bad: #c92a2a; --bad-bg: #fde8e8; --plan: #6b7280; --plan-bg: #eef0f3;
+  --hold: #7048a8; --hold-bg: #f1eafa; --flight: #0b7285; --flight-bg: #e2f5f8;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151a; --panel: #1a1e25; --panel-2: #232831; --text: #e6e9ee; --muted: #9aa4b2; --line: #2e3440;
+    --accent: #7b93ff; --ok: #69db7c; --ok-bg: #1d3325; --info: #74c0fc; --info-bg: #17293a;
+    --warn: #ffa94d; --warn-bg: #3a2a14; --bad: #ff8787; --bad-bg: #3b1d1d; --plan: #a0a8b5; --plan-bg: #262b33;
+    --hold: #c4a5f5; --hold-bg: #2b2238; --flight: #66d9e8; --flight-bg: #14313a; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151a; --panel: #1a1e25; --panel-2: #232831; --text: #e6e9ee; --muted: #9aa4b2; --line: #2e3440;
+  --accent: #7b93ff; --ok: #69db7c; --ok-bg: #1d3325; --info: #74c0fc; --info-bg: #17293a;
+  --warn: #ffa94d; --warn-bg: #3a2a14; --bad: #ff8787; --bad-bg: #3b1d1d; --plan: #a0a8b5; --plan-bg: #262b33;
+  --hold: #c4a5f5; --hold-bg: #2b2238; --flight: #66d9e8; --flight-bg: #14313a; --shadow: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+header.top { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 16px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+.top-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+h3 { font-size: 14px; margin: 0 0 8px; }
+.meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0 0; }
+nav.tabs button { border: 0; background: none; color: var(--muted); padding: 8px 12px; border-radius: 8px 8px 0 0; cursor: pointer; font: inherit; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--text); background: var(--bg); font-weight: 600; }
+main { padding: 16px 0 40px; }
+section.view { display: none; }
+section.view.active { display: block; }
+.grid { display: grid; gap: 12px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 12px; }
+.two { grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); min-width: 0; }
+.kpi .label { color: var(--muted); font-size: 12px; }
+.kpi .value { font-size: 26px; font-weight: 700; line-height: 1.2; }
+.kpi .sub { color: var(--muted); font-size: 12px; }
+.bar { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; display: flex; }
+.bar > span { display: block; height: 100%; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.s-verified, .s-complete, .s-done, .s-passed, .s-active, .s-closed { color: var(--ok); background: var(--ok-bg); }
+.s-gate_met, .s-tested, .s-implemented, .s-partial { color: var(--flight); background: var(--flight-bg); }
+.s-in_progress, .s-current { color: var(--info); background: var(--info-bg); }
+.s-planned, .s-pending, .s-not_started, .s-info { color: var(--plan); background: var(--plan-bg); }
+.s-blocked, .s-failed, .s-error, .s-open-high { color: var(--bad); background: var(--bad-bg); }
+.s-warning, .s-stale, .s-medium, .s-open { color: var(--warn); background: var(--warn-bg); }
+.s-on_hold, .s-accepted, .s-low { color: var(--hold); background: var(--hold-bg); }
+.timeline { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 4px; }
+.tl { border-radius: 8px; padding: 6px 2px; text-align: center; font-size: 11px; font-weight: 700; cursor: pointer; border: 2px solid transparent; }
+.tl.current { border-color: var(--accent); }
+@media (max-width: 640px) { .timeline { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.now { border-left: 4px solid var(--accent); }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { padding: 8px 0; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+.list li:first-child { border-top: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.filters input, .filters select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.filters input[type="search"] { flex: 1 1 200px; }
+.filters label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+details.ms { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+details.ms > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; }
+details.ms > summary::-webkit-details-marker { display: none; }
+details.ms[open] > summary { border-bottom: 1px solid var(--line); }
+.ms-id { font-weight: 800; color: var(--accent); }
+.ms-body { padding: 12px 14px; display: grid; gap: 14px; }
+.ms-title { font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+.table-wrap { overflow-x: auto; }
+.ladder { display: inline-flex; gap: 3px; }
+.ladder i { width: 18px; height: 6px; border-radius: 3px; background: var(--panel-2); display: inline-block; }
+.ladder i.on { background: var(--ok); }
+.ladder i.mid { background: var(--flight); }
+.donut { width: 132px; height: 132px; border-radius: 50%; position: relative; flex: none; }
+.donut::after { content: ""; position: absolute; inset: 22px; background: var(--panel); border-radius: 50%; }
+.donut-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.legend { display: grid; gap: 4px; font-size: 12px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.comp { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.empty { color: var(--muted); padding: 8px 0; }
+code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+button.theme { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div>
+        <h1 id="title">TenantFlow progress</h1>
+        <div class="meta" id="meta"></div>
+      </div>
+      <button class="theme" id="theme-toggle" type="button">Theme</button>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+      <button role="tab" data-view="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-view="milestones">Milestones &amp; slices</button>
+      <button role="tab" data-view="tasks">Tasks</button>
+      <button role="tab" data-view="quality">Quality</button>
+      <button role="tab" data-view="risks">Risks &amp; decisions</button>
+      <button role="tab" data-view="architecture">Architecture</button>
+      <button role="tab" data-view="health">Data health</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="view active" id="view-overview"></section>
+  <section class="view" id="view-milestones"></section>
+  <section class="view" id="view-tasks"></section>
+  <section class="view" id="view-quality"></section>
+  <section class="view" id="view-risks"></section>
+  <section class="view" id="view-architecture"></section>
+  <section class="view" id="view-health"></section>
+</main>
+
+<script id="progress-data" type="application/json">/*PROGRESS_DATA*/</script>
+<script id="evidence-data" type="application/json">/*EVIDENCE_DATA*/</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("progress-data").textContent);
+const E = JSON.parse(document.getElementById("evidence-data").textContent);
+
+// ---------- helpers ----------
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const arr = (v) => (Array.isArray(v) ? v : v == null ? [] : [v]);
+const LABELS = {
+  planned: "Planned", in_progress: "In progress", implemented: "Implemented", tested: "Tested", verified: "Verified",
+  blocked: "Blocked", complete: "Complete", gate_met: "Gate met", done: "Done", pending: "Pending", on_hold: "On hold",
+  open: "Open", accepted: "Accepted", mitigated: "Mitigated", not_started: "Not started", partial: "Partial",
+  passed: "Passed", failed: "Failed", stale: "Stale", active: "Active", error: "Error", warning: "Warning", info: "Info"
+};
+const badge = (status, text) => `<span class="badge s-${esc(status)}">${esc(text ?? LABELS[status] ?? status)}</span>`;
+const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : 0);
+const RANK = { planned: 0, in_progress: 1, implemented: 2, tested: 3, verified: 4 };
+const dateOnly = (iso) => (iso ? String(iso).slice(0, 10) : "");
+
+// ---------- derived model (all status rules live here) ----------
+const milestones = arr(D.milestones);
+const allSlices = milestones.flatMap((m) => arr(m.slices).map((s) => ({ ...s, milestone: m.id })));
+
+function milestoneState(m) {
+  const crit = arr(m.exitCriteria), slices = arr(m.slices);
+  const gateMet = crit.length > 0 && crit.every((c) => c.status === "verified");
+  const allVerified = slices.length > 0 && slices.every((s) => s.status === "verified");
+  if (gateMet && allVerified) return "complete";
+  if (gateMet) return "gate_met";
+  if (slices.some((s) => s.status !== "planned") || crit.some((c) => c.status !== "planned")) return "in_progress";
+  return "planned";
+}
+milestones.forEach((m) => { m._state = milestoneState(m); m._blocked = arr(m.slices).some((s) => s.status === "blocked"); });
+
+const current = milestones.find((m) => m._state !== "complete" && m._state !== "gate_met") || null;
+const currentIndex = current ? milestones.indexOf(current) : milestones.length;
+const currentSlice = current ? arr(current.slices).find((s) => s.status !== "verified" && s.status !== "planned") || null : null;
+const msIndex = (id) => milestones.findIndex((m) => m.id === id);
+
+const counts = {
+  complete: milestones.filter((m) => m._state === "complete").length,
+  gateMet: milestones.filter((m) => m._state === "complete" || m._state === "gate_met").length,
+  inProgress: milestones.filter((m) => m._state === "in_progress").length,
+  slicesTotal: allSlices.length,
+  slicesVerified: allSlices.filter((s) => s.status === "verified").length,
+  slicesInFlight: allSlices.filter((s) => ["in_progress", "implemented", "tested"].includes(s.status)).length,
+  slicesBlocked: allSlices.filter((s) => s.status === "blocked").length,
+  unsliced: milestones.filter((m) => arr(m.slices).length === 0)
+};
+const specCriteria = arr(D.specs).flatMap((s) => arr(s.criteria).map((c) => ({ ...c, spec: s.id })));
+
+// Live quality evidence: present, tied to a commit, and stale when HEAD has moved.
+const Q = E.quality || null;
+const head = E.git?.head || "";
+const qStale = Q ? Q.commit !== head : true;
+const qDirty = Q ? Q.uncommittedChanges > 0 : false;
+
+// Decisions from the open-decisions register (parsed from the repository, not from progress.json).
+const decisions = arr(E.registers?.decisions);
+const dueIndex = (closeBy) => { const m = String(closeBy).match(/M(\d+)/); return m ? Number(m[1]) : 99; };
+const openDecisions = decisions.filter((d) => d.open);
+const overdueDecisions = openDecisions.filter((d) => dueIndex(d.closeBy) < currentIndex);
+const dueNow = openDecisions.filter((d) => current && dueIndex(d.closeBy) === currentIndex);
+
+// ---------- data health ----------
+const health = [];
+const issue = (level, text) => health.push({ level, text });
+for (const m of milestones) {
+  if (arr(m.slices).length === 0) issue("info", `${m.id} has no slices yet; it is not counted in slice progress until it is sliced.`);
+  for (const c of arr(m.exitCriteria)) if (c.status === "verified" && !c.evidence) issue("warning", `${c.id} is verified but has no evidence text.`);
+  for (const s of arr(m.slices)) {
+    if (s.status === "verified" && !(s.verification && s.verification.date)) issue("warning", `${s.id} is verified but has no verification record.`);
+    if (["implemented", "tested", "verified"].includes(s.status) && !s.commit) issue("warning", `${s.id} is ${s.status} but names no commit.`);
+    if (s.commit && E.commitsExist && E.commitsExist[s.commit] === false) issue("error", `${s.id} names commit ${s.commit}, which does not exist in this repository.`);
+  }
+}
+for (const spec of arr(D.specs)) {
+  const all = arr(spec.criteria), verified = all.filter((c) => c.verified).length;
+  const expected = all.length > 0 && verified === all.length ? "Implemented" : null;
+  const reg = arr(E.registers?.specs).find((r) => r.id === spec.id);
+  if (!reg) issue("warning", `SPEC-${spec.id} is tracked here but missing from docs/specs/README.md.`);
+  else if (expected && reg.status !== expected) issue("warning", `SPEC-${spec.id}: all criteria verified, but the spec index says "${reg.status}".`);
+  else if (!expected && reg.status === "Implemented") issue("error", `SPEC-${spec.id} is Implemented in the index, but ${all.length - verified} criteria are not verified here.`);
+  for (const c of all) if (!allSlices.some((s) => s.id === c.slice)) issue("warning", `SPEC-${spec.id} criterion ${c.n} points to unknown slice ${c.slice}.`);
+}
+for (const reg of arr(E.registers?.specs)) if (!arr(D.specs).some((s) => s.id === reg.id)) issue("warning", `SPEC-${reg.id} exists in the spec index but is not tracked in progress.json.`);
+for (const d of overdueDecisions) issue("error", `Open Decision ${d.n} was due by ${d.closeBy} and is still open.`);
+for (const t of arr(E.threatActions?.errors)) issue("error", `Threat-model action: ${t}`);
+if (E.threatActions && !arr(E.threatActions.errors).length) issue("info", `Threat-model actions: ${E.threatActions.total} in ${E.threatActions.models} models (${E.threatActions.done} done, ${E.threatActions.planned} planned, ${E.threatActions.accepted} accepted).`);
+if (!Q) issue("info", "No live quality run on this checkout. Run dotnet run --project tools/TenantFlow.Progress -- --verify.");
+else if (qStale) issue("info", `Live quality results are from ${Q.commit}; HEAD is ${head}. Run dotnet run --project tools/TenantFlow.Progress -- --verify.`);
+const lastCommit = arr(E.git?.commits)[0];
+if (lastCommit && D.updated && dateOnly(lastCommit.date) > D.updated) issue("info", `progress.json was last updated ${D.updated}; the latest commit is from ${dateOnly(lastCommit.date)}.`);
+
+// ---------- attention list ----------
+const tasks = arr(D.tasks);
+const attention = [];
+for (const t of tasks) if (t.attention && t.status !== "done") attention.push({ kind: "Task", text: t.title, status: t.status });
+for (const d of dueNow) attention.push({ kind: `Decision due ${current.id}`, text: `OD-${d.n}: ${d.decision}`, status: "open" });
+for (const d of overdueDecisions) attention.push({ kind: "Overdue decision", text: `OD-${d.n}: ${d.decision}`, status: "error" });
+for (const s of allSlices.filter((x) => x.status === "blocked")) attention.push({ kind: "Blocked slice", text: `${s.id} ${s.title}`, status: "blocked" });
+if (Q && (!Q.verify.passed || !Q.composeValid)) attention.push({ kind: "Failing check", text: Q.verify.failedStep || "Quality run failed", status: "failed" });
+for (const h of health.filter((x) => x.level === "error")) attention.push({ kind: "Data health", text: h.text, status: "error" });
+
+// ---------- header ----------
+document.getElementById("title").textContent = `${D.project?.name || "Project"} progress`;
+document.getElementById("meta").innerHTML = [
+  `Branch <code>${esc(E.git?.branch)}</code> @ <code>${esc(head)}</code>`,
+  E.git?.uncommitted ? badge("warning", `${E.git.uncommitted} uncommitted change(s)`) : badge("verified", "Working tree clean"),
+  `Data updated ${esc(D.updated)}`,
+  `Generated ${esc(dateOnly(E.generatedAt))} ${esc(String(E.generatedAt || "").slice(11, 16))} UTC`
+].join(" · ");
+
+// ---------- overview ----------
+function sliceColor(st) {
+  return { verified: "var(--ok)", tested: "var(--flight)", implemented: "var(--flight)", in_progress: "var(--info)", blocked: "var(--bad)", planned: "var(--plan-bg)" }[st] || "var(--plan-bg)";
+}
+function renderOverview() {
+  const v = document.getElementById("view-overview");
+  const sliceStates = ["verified", "tested", "implemented", "in_progress", "blocked", "planned"];
+  const sc = Object.fromEntries(sliceStates.map((s) => [s, allSlices.filter((x) => x.status === s).length]));
+  let acc = 0;
+  const stops = sliceStates.filter((s) => sc[s]).map((s) => { const from = acc; acc += (sc[s] / counts.slicesTotal) * 100; return `${sliceColor(s)} ${from}% ${acc}%`; }).join(",");
+  const critVerified = specCriteria.filter((c) => c.verified).length;
+  const manual = specCriteria.filter((c) => c.verified && c.how === "manual").length;
+  const qLine = !Q ? badge("planned", "Not run on this checkout")
+    : badge(Q.verify.passed && Q.composeValid ? (qStale ? "stale" : "passed") : "failed",
+      Q.verify.passed && Q.composeValid ? (qStale ? `Passed at ${Q.commit} (stale)` : `Passed at ${Q.commit}`) : `Failed at ${Q.commit}`);
+
+  v.innerHTML = `
+  <div class="grid kpis">
+    <div class="card kpi"><div class="label">Milestones complete</div><div class="value">${counts.complete} / ${milestones.length}</div>
+      <div class="sub">${counts.gateMet} with gate met · ${counts.inProgress} in progress</div>
+      <div class="bar" style="margin-top:8px"><span style="width:${pct(counts.complete, milestones.length)}%;background:var(--ok)"></span><span style="width:${pct(counts.gateMet - counts.complete, milestones.length)}%;background:var(--flight)"></span></div></div>
+    <div class="card kpi"><div class="label">Slices verified</div><div class="value">${pct(counts.slicesVerified, counts.slicesTotal)}%</div>
+      <div class="sub">${counts.slicesVerified} of ${counts.slicesTotal} defined · ${counts.slicesInFlight} in flight${counts.unsliced.length ? ` · ${counts.unsliced.length} milestone(s) not sliced` : ""}</div>
+      <div class="bar" style="margin-top:8px"><span style="width:${pct(counts.slicesVerified, counts.slicesTotal)}%;background:var(--ok)"></span><span style="width:${pct(counts.slicesInFlight, counts.slicesTotal)}%;background:var(--flight)"></span></div></div>
+    <div class="card kpi"><div class="label">Spec criteria verified</div><div class="value">${critVerified} / ${specCriteria.length}</div>
+      <div class="sub">${arr(D.specs).length} spec(s)${manual ? ` · ${manual} verified manually` : ""}</div></div>
+    <div class="card kpi"><div class="label">Quality gate (live)</div><div class="value" style="font-size:16px;margin-top:6px">${qLine}</div>
+      <div class="sub">${Q ? `Ran ${esc(dateOnly(Q.ranAt))}` : "Run dotnet run --project tools/TenantFlow.Progress -- --verify"}</div></div>
+    <div class="card kpi"><div class="label">Needs attention</div><div class="value">${attention.length}</div>
+      <div class="sub">${openDecisions.length} open decisions in the register</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h2>Milestone timeline</h2>
+    <div class="timeline">${milestones.map((m) => `<div class="tl s-${m === current ? "current" : m._state} ${m === current ? "current" : ""}" title="${esc(m.id)} ${esc(m.title)}: ${esc(LABELS[m._state])}" data-goto="${esc(m.id)}">${esc(m.id)}</div>`).join("")}</div>
+    <p class="small muted" style="margin:8px 0 0">Green: complete · teal: gate met with follow-ups · blue outline: current · grey: planned. Counts, not effort: milestones differ in size.</p>
+  </div>
+
+  <div class="grid two">
+    <div class="card now">
+      <h2>Where are we now?</h2>
+      ${current ? `<p style="margin:0 0 6px"><b>${esc(current.id)} ${esc(current.title)}</b> ${badge(current._state)}</p>
+      <p class="muted" style="margin:0 0 8px">${esc(current.goal)}</p>
+      <p style="margin:0 0 8px"><b>Current slice:</b> ${currentSlice ? `${esc(currentSlice.id)} ${esc(currentSlice.title)} ${badge(currentSlice.status)}` : "none started"}</p>` : "<p>All milestones are complete.</p>"}
+      <h3>Recommended next step</h3>
+      <p style="margin:0"><b>${esc(D.nextStep?.title)}</b></p><p class="muted" style="margin:4px 0 0">${esc(D.nextStep?.detail)}</p>
+    </div>
+    <div class="card">
+      <h2>Needs attention</h2>
+      ${attention.length ? `<ul class="list">${attention.map((a) => `<li><span><span class="muted small">${esc(a.kind)}</span><br>${esc(a.text)}</span>${badge(a.status)}</li>`).join("")}</ul>` : `<p class="empty">Nothing needs attention.</p>`}
+    </div>
+    <div class="card">
+      <h2>Slice status</h2>
+      <div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops || "var(--plan-bg) 0 100%"})" role="img" aria-label="Slice status distribution"></div>
+      <div class="legend">${sliceStates.map((s) => `<span style="--c:${sliceColor(s)}">${esc(LABELS[s])}: ${sc[s]}</span>`).join("")}</div></div>
+    </div>
+    <div class="card">
+      <h2>Completed and verified</h2>
+      <ul class="list">${milestones.filter((m) => m._state === "complete" || m._state === "gate_met").map((m) => `<li><span><b>${esc(m.id)}</b> ${esc(m.title)}<br><span class="small muted">${arr(m.slices).filter((s) => s.status === "verified").length}/${arr(m.slices).length} slices verified</span></span>${badge(m._state)}</li>`).join("") || `<li class="empty">Nothing yet.</li>`}</ul>
+    </div>
+  </div>`;
+  v.querySelectorAll("[data-goto]").forEach((el) => el.addEventListener("click", () => { showView("milestones"); const d = document.getElementById(`ms-${el.dataset.goto}`); if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth" }); } }));
+}
+
+// ---------- milestones ----------
+function ladder(status) {
+  if (status === "blocked") return badge("blocked");
+  const r = RANK[status] ?? 0;
+  return `<span class="ladder" title="${esc(LABELS[status])}">${[1, 2, 3, 4].map((i) => `<i class="${i <= r ? (r === 4 ? "on" : "mid") : ""}"></i>`).join("")}</span> ${badge(status)}`;
+}
+function renderMilestones() {
+  const v = document.getElementById("view-milestones");
+  v.innerHTML = `
+  <div class="filters">
+    <input type="search" id="ms-search" placeholder="Search milestones and slices" aria-label="Search milestones and slices">
+    <select id="ms-state" aria-label="Milestone status"><option value="">All statuses</option>${["complete", "gate_met", "in_progress", "planned"].map((s) => `<option value="${s}">${LABELS[s]}</option>`).join("")}</select>
+    <select id="ms-priority" aria-label="Priority"><option value="">All priorities</option>${[...new Set(milestones.map((m) => m.priority))].map((p) => `<option>${esc(p)}</option>`).join("")}</select>
+  </div><div id="ms-list"></div>`;
+  const list = v.querySelector("#ms-list");
+  const draw = () => {
+    const q = v.querySelector("#ms-search").value.toLowerCase(), st = v.querySelector("#ms-state").value, pr = v.querySelector("#ms-priority").value;
+    const shown = milestones.filter((m) => (!st || m._state === st) && (!pr || m.priority === pr) &&
+      (!q || JSON.stringify(m).toLowerCase().includes(q)));
+    list.innerHTML = shown.map((m) => {
+      const slices = arr(m.slices), ver = slices.filter((s) => s.status === "verified").length, fl = slices.filter((s) => ["in_progress", "implemented", "tested"].includes(s.status)).length;
+      const decs = arr(m.decisions).map((n) => decisions.find((d) => d.n === n)).filter(Boolean);
+      return `<details class="ms" id="ms-${esc(m.id)}" ${m === current || q ? "open" : ""}>
+        <summary><span class="ms-id">${esc(m.id)}</span>
+          <span><span class="ms-title">${esc(m.title)}</span> <span class="muted small">${esc(m.priority)}</span>
+            <div class="bar" style="margin-top:6px;max-width:420px"><span style="width:${pct(ver, slices.length)}%;background:var(--ok)"></span><span style="width:${pct(fl, slices.length)}%;background:var(--flight)"></span></div>
+            <span class="small muted">${slices.length ? `${ver}/${slices.length} slices verified` : "Not sliced yet"}</span></span>
+          <span>${m === current ? badge("current", "Current") + " " : ""}${badge(m._state)}${m._blocked ? " " + badge("blocked") : ""}</span></summary>
+        <div class="ms-body">
+          <div><h3>Goal</h3><p style="margin:0">${esc(m.goal)}</p>
+            <p class="small muted" style="margin:6px 0 0">Depends on: ${arr(m.dependsOn).map(esc).join(", ") || "nothing"}${m.guide ? ` · Guide: <code>${esc(m.guide)}</code>` : ""}${arr(m.specs).length ? ` · Specs: ${arr(m.specs).map((s) => `SPEC-${esc(s)}`).join(", ")}` : ""}</p></div>
+          <div><h3>Gate (exit criteria)</h3><ul class="list">${arr(m.exitCriteria).map((c) => `<li><span>${esc(c.text)}${c.evidence ? `<br><span class="small muted">${esc(c.evidence)}</span>` : ""}</span>${badge(c.status)}</li>`).join("")}</ul></div>
+          ${decs.length ? `<div><h3>Decisions</h3><ul class="list">${decs.map((d) => `<li><span>OD-${d.n}: ${esc(d.decision)}</span>${badge(d.open ? "open" : "closed", d.open ? "Open" : d.status.split(":")[0])}</li>`).join("")}</ul></div>` : ""}
+          <div><h3>Slices</h3>${slices.length ? `<div class="table-wrap"><table><thead><tr><th>Slice</th><th>Status</th><th>Commit</th><th>Verification</th></tr></thead><tbody>
+            ${slices.map((s) => `<tr><td><b>${esc(s.id)}</b> ${esc(s.title)}${s.criteria ? `<br><span class="small muted">Spec criteria ${arr(s.criteria).join(", ")}</span>` : ""}</td>
+              <td>${ladder(s.status)}</td>
+              <td>${s.commit ? `<code>${esc(s.commit)}</code>${E.commitsExist && E.commitsExist[s.commit] === false ? " " + badge("error", "missing") : ""}` : '<span class="muted">—</span>'}</td>
+              <td class="small">${s.verification ? `${esc(s.verification.date)}<br>${arr(s.verification.ran).map(esc).join("<br>")}${arr(s.verification.proofs).length ? `<br><span class="muted">Break-it: ${arr(s.verification.proofs).map(esc).join("; ")}</span>` : ""}` : '<span class="muted">—</span>'}${s.note ? `<br><span style="color:var(--warn)">${esc(s.note)}</span>` : ""}</td></tr>`).join("")}
+            </tbody></table></div>` : `<p class="empty">Slices are defined at the milestone kickoff.</p>`}</div>
+        </div></details>`;
+    }).join("") || `<p class="empty">No milestones match.</p>`;
+  };
+  v.querySelectorAll("input,select").forEach((el) => el.addEventListener("input", draw));
+  draw();
+}
+
+// ---------- tasks ----------
+function renderTasks() {
+  const v = document.getElementById("view-tasks");
+  const states = ["pending", "in_progress", "blocked", "on_hold", "done"];
+  v.innerHTML = `
+  <div class="grid kpis">${states.map((s) => `<div class="card kpi"><div class="label">${LABELS[s]}</div><div class="value">${tasks.filter((t) => t.status === s).length}</div></div>`).join("")}</div>
+  <div class="filters">
+    <input type="search" id="t-search" placeholder="Search tasks" aria-label="Search tasks">
+    <select id="t-status" aria-label="Task status"><option value="">All statuses</option>${states.map((s) => `<option value="${s}">${LABELS[s]}</option>`).join("")}</select>
+    <select id="t-ms" aria-label="Milestone"><option value="">All milestones</option>${milestones.map((m) => `<option>${m.id}</option>`).join("")}</select>
+    <label><input type="checkbox" id="t-att"> Needs attention only</label>
+  </div>
+  <div class="card table-wrap"><table><thead><tr><th>Task</th><th>Milestone</th><th>Owner</th><th>Status</th></tr></thead><tbody id="t-body"></tbody></table></div>`;
+  const draw = () => {
+    const q = v.querySelector("#t-search").value.toLowerCase(), st = v.querySelector("#t-status").value, ms = v.querySelector("#t-ms").value, att = v.querySelector("#t-att").checked;
+    const rows = tasks.filter((t) => (!st || t.status === st) && (!ms || t.milestone === ms) && (!att || (t.attention && t.status !== "done")) && (!q || JSON.stringify(t).toLowerCase().includes(q)));
+    v.querySelector("#t-body").innerHTML = rows.map((t) => `<tr><td>${t.attention && t.status !== "done" ? "⚑ " : ""}<b>${esc(t.id)}</b> ${esc(t.title)}${t.note ? `<br><span class="small muted">${esc(t.note)}</span>` : ""}</td><td>${esc(t.milestone)}</td><td>${esc(t.owner || "")}</td><td>${badge(t.status)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty">No tasks match.</td></tr>`;
+  };
+  v.querySelectorAll("input,select").forEach((el) => el.addEventListener("input", draw));
+  draw();
+}
+
+// ---------- quality ----------
+function gateStatus(g) {
+  if (g.plannedIn) return { s: "planned", t: `Planned (${g.plannedIn})`, d: "" };
+  if (g.state === "on_hold") return { s: "on_hold", t: "On hold", d: "" };
+  if (g.recorded) return { s: g.recorded.result === "passed" ? "passed" : "failed", t: `Recorded ${g.recorded.result}`, d: `${g.recorded.detail} (${g.recorded.date}; not re-run by this report)` };
+  if (!Q) return { s: "planned", t: "Not run here", d: "Run dotnet run --project tools/TenantFlow.Progress -- --verify" };
+  const stale = qStale ? " (stale)" : "";
+  const ok = (b, detail) => ({ s: b ? (qStale ? "stale" : "passed") : "failed", t: (b ? "Passed" : "Failed") + stale, d: detail });
+  switch (g.live) {
+    case "verify": return ok(Q.verify.passed, `Warnings ${Q.verify.warnings ?? "?"}, errors ${Q.verify.errors ?? "?"} at ${Q.commit}`);
+    case "tests": { const t = arr(Q.tests); const p = t.reduce((a, x) => a + x.passed, 0), n = t.reduce((a, x) => a + x.total, 0); return ok(t.length > 0 && p === n, `${p}/${n} test cases passed`); }
+    case "coverage": { const c = arr(Q.coverage); return c.length ? { s: qStale ? "stale" : "active", t: "Collected" + stale, d: c.map((x) => `${x.assembly} ${x.lineRate}%`).join(", ") } : { s: "failed", t: "Missing", d: "No coverage report produced" }; }
+    case "compose": return ok(Q.composeValid, "ComposeFileTests");
+    default: return { s: "info", t: "Unknown", d: "" };
+  }
+}
+function renderQuality() {
+  const v = document.getElementById("view-quality");
+  const gates = arr(D.qualityGates);
+  v.innerHTML = `
+  <div class="grid two" style="margin-bottom:12px">
+    <div class="card"><h2>Latest live run</h2>${Q ? `<p style="margin:0">${badge(Q.verify.passed && Q.composeValid ? (qStale ? "stale" : "passed") : "failed")} at <code>${esc(Q.commit)}</code> on ${esc(dateOnly(Q.ranAt))}${qDirty ? " " + badge("warning", "with uncommitted changes") : ""}</p>
+      <p class="small muted" style="margin:6px 0 0">${qStale ? `HEAD is now <code>${esc(head)}</code>; re-run to refresh.` : "Matches the current HEAD."}</p>
+      ${arr(Q.tests).length ? `<ul class="list" style="margin-top:8px">${arr(Q.tests).map((t) => `<li><span>${esc(t.assembly)}</span><span>${t.passed}/${t.total} ${badge(t.failed ? "failed" : "passed")}</span></li>`).join("")}</ul>` : ""}`
+      : `<p class="empty">No live run on this checkout. Run <code>dotnet run --project tools/TenantFlow.Progress -- --verify</code>.</p>`}</div>
+    <div class="card"><h2>Tests defined in the repository</h2><ul class="list">${arr(E.testInventory).map((t) => `<li><span>${esc(t.project)}</span><span>${t.testMethods} test methods</span></li>`).join("")}</ul>
+      <p class="small muted" style="margin:6px 0 0">Definitions counted from source ([Fact] and [Theory]); a theory runs once per data row, so executed cases can be higher.</p></div>
+  </div>
+  <div class="card table-wrap"><h2>Quality gates</h2><table><thead><tr><th>Gate</th><th>Kind</th><th>Since / planned</th><th>Status</th><th>Detail</th></tr></thead><tbody>
+    ${gates.map((g) => { const st = gateStatus(g); return `<tr><td>${esc(g.name)}</td><td>${esc(g.kind)}</td><td>${esc(g.since || g.plannedIn || "")}</td><td>${badge(st.s, st.t)}</td><td class="small muted">${esc(st.d)}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
+}
+
+// ---------- risks and decisions ----------
+function renderRisks() {
+  const v = document.getElementById("view-risks");
+  const byDue = [...openDecisions].sort((a, b) => dueIndex(a.closeBy) - dueIndex(b.closeBy));
+  v.innerHTML = `
+  <div class="grid two">
+    <div class="card"><h2>Risks and known issues</h2><ul class="list">${arr(D.risks).map((r) => `<li><span><b>${esc(r.id)}</b> ${esc(r.title)} <span class="small muted">(${esc(r.milestone)})</span><br><span class="small muted">${esc(r.mitigation)}</span></span><span>${badge(r.severity, r.severity)} ${badge(r.status)}</span></li>`).join("")}</ul></div>
+    <div class="card"><h2>Open decisions</h2><p class="small muted" style="margin:0 0 6px">From <code>docs/architecture/open-decisions.md</code>. Highlighted: due by the current milestone or overdue.</p>
+      <ul class="list">${byDue.map((d) => { const due = dueIndex(d.closeBy); const tone = due < currentIndex ? "error" : due === currentIndex ? "open" : "planned"; return `<li><span><b>OD-${d.n}</b> ${esc(d.decision)}</span>${badge(tone, `Due ${d.closeBy}`)}</li>`; }).join("")}</ul></div>
+    <div class="card"><h2>Architecture decisions (ADRs)</h2><ul class="list">${arr(E.registers?.adrs).map((a) => `<li><span><b>ADR-${esc(a.id)}</b> ${esc(a.title)}</span>${badge(/superseded|deprecated/i.test(a.status) ? "planned" : "verified", a.status)}</li>`).join("")}</ul></div>
+  </div>`;
+}
+
+// ---------- architecture ----------
+function renderArchitecture() {
+  const v = document.getElementById("view-architecture");
+  const comps = arr(D.components);
+  v.innerHTML = `<div class="grid two">${comps.map((c) => `<div class="card"><div class="comp"><div><b>${esc(c.name)}</b><br><span class="small muted">${esc(c.milestone)}${c.evidence ? " · " + esc(c.evidence) : ""}</span></div>${badge(c.status)}</div></div>`).join("")}</div>`;
+}
+
+// ---------- data health ----------
+function renderHealth() {
+  const v = document.getElementById("view-health");
+  const order = { error: 0, warning: 1, info: 2 };
+  v.innerHTML = `<div class="card"><h2>Data health</h2><p class="small muted" style="margin:0 0 6px">Consistency between <code>docs/progress/progress.json</code> and the repository. Errors mean the tracker is wrong.</p>
+    ${health.length ? `<ul class="list">${health.sort((a, b) => order[a.level] - order[b.level]).map((h) => `<li><span>${esc(h.text)}</span>${badge(h.level)}</li>`).join("")}</ul>` : `<p class="empty">No issues found.</p>`}</div>
+    <div class="card" style="margin-top:12px"><h2>How progress is calculated</h2><ul class="small" style="margin:0;padding-left:18px">
+      <li>Only <b>verified</b> slices count as progress. Implemented and tested slices are shown as "in flight".</li>
+      <li>A milestone is <b>complete</b> when every exit criterion and every slice is verified, and <b>gate met</b> when its exit criteria are verified but a slice is not.</li>
+      <li>Slices of future milestones come from the roadmap and are provisional; milestones without slices are excluded from slice counts and flagged here.</li>
+      <li>Numbers are counts, not effort estimates. Live checks are tied to the commit they ran on and marked stale when HEAD moves.</li></ul></div>`;
+}
+
+// ---------- tabs and theme ----------
+function showView(name) {
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === name)));
+  document.querySelectorAll("section.view").forEach((s) => s.classList.toggle("active", s.id === `view-${name}`));
+  try { localStorage.setItem("tf-view", name); } catch (e) { /* storage may be unavailable */ }
+}
+document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("tf-theme", root.dataset.theme); } catch (e) { /* ignore */ }
+});
+try { const t = localStorage.getItem("tf-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* ignore */ }
+
+renderOverview(); renderMilestones(); renderTasks(); renderQuality(); renderRisks(); renderArchitecture(); renderHealth();
+try { const saved = localStorage.getItem("tf-view"); if (saved && document.getElementById(`view-${saved}`)) showView(saved); } catch (e) { /* ignore */ }
+</script>
+</body>
+</html>

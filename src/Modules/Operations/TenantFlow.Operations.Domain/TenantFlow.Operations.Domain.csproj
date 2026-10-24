@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Operations module domain: support grants (ADR-0027). No HTTP, broker, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Operations.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

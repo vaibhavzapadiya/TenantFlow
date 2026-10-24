@@ -1,0 +1,118 @@
+# promtool unit tests for slo.rules.yml (ADR-0029, ADR-0030). Run with "docker compose --profile checks run --rm rule-tests".
+# Each SLI: the right traffic is eligible, the right events are good, and other traffic does not leak in. Ratios are
+# compared in thousandths (round(x * 1000)), since a computed ratio is rarely the exact float of its decimal.
+rule_files:
+  - slo.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Catalog read: 100 GETs a minute on the list route and on a constrained product route; 75 of them fast and non-5xx.
+  # A burst of 5xx on a platform route and slow POSTs on products are not eligible.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId}/products", http_response_status_code="200"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId}/products", http_response_status_code="200", le="0.5"}'
+        values: '0+50x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId:guid}/products/{productId:guid}", http_response_status_code="500"}'
+        values: '0+40x30'
+      - series: 'http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId:guid}/products/{productId:guid}", http_response_status_code="500", le="0.5"}'
+        values: '0+40x30'
+      - series: 'http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId:guid}/products/{productId:guid}", http_response_status_code="404", le="0.5"}'
+        values: '0+25x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/tenants/{tenantId:guid}/products/{productId:guid}", http_response_status_code="404"}'
+        values: '0+25x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="GET", http_route="/v1/platform/tenants/", http_response_status_code="500"}'
+        values: '0+500x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route="/v1/tenants/{tenantId}/products", http_response_status_code="201"}'
+        values: '0+500x30'
+    promql_expr_test:
+      # 125 eligible a minute (60 + 40 + 25); good = 50 fast 200s + 25 fast 404s = 75; the 40 5xx are bad.
+      - expr: round(tenantflow:slo_error_ratio:rate5m{slo="catalog_read"} * 1000)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{slo="catalog_read"}'
+            value: 400
+      - expr: round(tenantflow:slo_error_ratio:rate1h{slo="catalog_read"} * 1000)
+        eval_time: 30m
+        exp_samples:
+          - labels: '{slo="catalog_read"}'
+            value: 400
+      - expr: tenantflow:slo_objective{slo="catalog_read"}
+        eval_time: 1m
+        exp_samples:
+          - labels: 'tenantflow:slo_objective{slo="catalog_read"}'
+            value: 0.995
+
+  # Order submission: 20 submits a minute, 16 within 1 s ("1.0" as a scrape would write it); order creation is excluded.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route="/v1/tenants/{tenantId}/orders/{orderId}/submit", http_response_status_code="200"}'
+        values: '0+20x30'
+      - series: 'http_server_request_duration_seconds_bucket{service_name="tenantflow-api", http_request_method="POST", http_route="/v1/tenants/{tenantId}/orders/{orderId}/submit", http_response_status_code="200", le="1.0"}'
+        values: '0+16x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_request_method="POST", http_route="/v1/tenants/{tenantId}/orders/", http_response_status_code="500"}'
+        values: '0+100x30'
+    promql_expr_test:
+      - expr: round(tenantflow:slo_error_ratio:rate5m{slo="order_submission"} * 1000)
+        eval_time: 20m
+        exp_samples:
+          - labels: '{slo="order_submission"}'
+            value: 200
+
+  # Payment resolution: per minute 8 succeeded, 1 failed, 1 needs review; unknown is not an event.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_payments_attempts_total{outcome="succeeded", service_name="tenantflow-api"}'
+        values: '0+8x30'
+      - series: 'tenantflow_payments_attempts_total{outcome="failed", service_name="tenantflow-api"}'
+        values: '0+1x30'
+      - series: 'tenantflow_payments_attempts_total{outcome="requires_review", service_name="tenantflow-worker"}'
+        values: '0+1x30'
+      - series: 'tenantflow_payments_attempts_total{outcome="unknown", service_name="tenantflow-api"}'
+        values: '0+50x30'
+    promql_expr_test:
+      - expr: round(tenantflow:slo_error_ratio:rate30m{slo="payment_resolution"} * 1000)
+        eval_time: 30m
+        exp_samples:
+          - labels: '{slo="payment_resolution"}'
+            value: 100
+
+  # Export completion: 10 exports a minute end; 9 succeed, of which 8 within 250 s; imports do not count.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_imports_exports_job_duration_seconds_count{kind="export", outcome="succeeded"}'
+        values: '0+9x30'
+      - series: 'tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="succeeded", le="250"}'
+        values: '0+8x30'
+      - series: 'tenantflow_imports_exports_job_duration_seconds_count{kind="export", outcome="failed"}'
+        values: '0+1x30'
+      - series: 'tenantflow_imports_exports_job_duration_seconds_bucket{kind="export", outcome="failed", le="250"}'
+        values: '0+1x30'
+      - series: 'tenantflow_imports_exports_job_duration_seconds_count{kind="import", outcome="failed"}'
+        values: '0+100x30'
+    promql_expr_test:
+      - expr: round(tenantflow:slo_error_ratio:rate30m{slo="export_completion"} * 1000)
+        eval_time: 30m
+        exp_samples:
+          - labels: '{slo="export_completion"}'
+            value: 200
+
+  # Event delivery: 1 dead letter in 100 finished messages a minute; retries are not events.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_messaging_consumed_total{consumer="notifications.order-events", outcome="processed"}'
+        values: '0+95x30'
+      - series: 'tenantflow_messaging_consumed_total{consumer="notifications.order-events", outcome="duplicate"}'
+        values: '0+4x30'
+      - series: 'tenantflow_messaging_consumed_total{consumer="audit.events", outcome="dead_lettered"}'
+        values: '0+1x30'
+      - series: 'tenantflow_messaging_consumed_total{consumer="audit.events", outcome="retried"}'
+        values: '0+300x30'
+    promql_expr_test:
+      - expr: round(tenantflow:slo_error_ratio:rate30m{slo="event_delivery"} * 1000)
+        eval_time: 30m
+        exp_samples:
+          - labels: '{slo="event_delivery"}'
+            value: 10

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Payments module domain: a payment and its state table (SPEC-0006, ADR-0022). No HTTP, provider, broker, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Payments.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <!-- The shared payment-method token rule (PaymentMethodTokens). -->
+    <ProjectReference Include="..\TenantFlow.Payments.Contracts\TenantFlow.Payments.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

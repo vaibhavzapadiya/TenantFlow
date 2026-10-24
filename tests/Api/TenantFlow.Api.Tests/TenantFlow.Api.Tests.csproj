@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Api.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+    <!-- Shared test host and issuer (Support/), used by every test folder. -->
+    <Using Include="TenantFlow.Api.Tests.Support" />
+    <Using Include="TenantFlow.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Hosts\TenantFlow.Api\TenantFlow.Api.csproj" />
+    <ProjectReference Include="..\..\Shared\TenantFlow.Testing\TenantFlow.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

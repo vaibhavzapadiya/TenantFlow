@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fast unit tests for the ImportsExports module (blueprint section 15, layer 1): storage keys, the filesystem adapter on a
+    temporary folder, CSV rules. No host and no database.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.ImportsExports.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Modules\ImportsExports\TenantFlow.ImportsExports.Application\TenantFlow.ImportsExports.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\Modules\ImportsExports\TenantFlow.ImportsExports.Domain\TenantFlow.ImportsExports.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\Modules\ImportsExports\TenantFlow.ImportsExports.Infrastructure\TenantFlow.ImportsExports.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

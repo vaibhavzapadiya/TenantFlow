@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- What other modules may ask the ImportsExports module (ADR-0002): today the read-only support job view (ADR-0027). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.ImportsExports.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

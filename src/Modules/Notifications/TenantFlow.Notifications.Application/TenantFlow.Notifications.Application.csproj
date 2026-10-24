@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Notifications module use cases: consuming integration events (SPEC-0005, ADR-0021). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Notifications.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Notifications.Domain\TenantFlow.Notifications.Domain.csproj" />
+    <!-- Only contracts: the order events it consumes, and whether a tenant exists (ADR-0002). -->
+    <ProjectReference Include="..\..\Orders\TenantFlow.Orders.Contracts\TenantFlow.Orders.Contracts.csproj" />
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Builds the progress dashboard (docs/progress/README.md): artifacts/progress/dashboard.html from
+    docs/progress/progress.json, live repository evidence and, with "verify", a quality run of the current commit.
+    Run: dotnet run (project tools/TenantFlow.Progress) with "verify" and "open" as options. Development only: never
+    deployed, and it references no TenantFlow project.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TenantFlow.Progress</RootNamespace>
+  </PropertyGroup>
+
+</Project>

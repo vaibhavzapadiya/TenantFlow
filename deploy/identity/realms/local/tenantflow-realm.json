@@ -1,0 +1,80 @@
+{
+  "realm": "tenantflow",
+  "displayName": "TenantFlow (local development only)",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "clients": [
+    {
+      "clientId": "tenantflow-dev-cli",
+      "name": "Local development scripts",
+      "description": "Public client for the smoke tests and drills only. Uses the password grant, which real clients must not use; they use the authorization code flow with PKCE.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "tenantflow-api-docs",
+      "name": "Local API reference sign-in (tenant users)",
+      "description": "Public browser client for the Development-only Scalar reference at http://localhost:5080/scalar/v1 (SPEC-0014). Authorization code flow with PKCE S256 only.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5080/scalar/*"],
+      "webOrigins": ["http://localhost:5080"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": false,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "dev-user-a",
+      "email": "dev-user-a@tenantflow.test",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "User A",
+      "enabled": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEV_USER_PASSWORD}", "temporary": false }]
+    }
+  ]
+}

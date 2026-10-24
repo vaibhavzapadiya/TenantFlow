@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Payments module use cases (ADR-0013), request validation (ADR-0014) and the payment provider port (ADR-0022). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Payments.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Validation\TenantFlow.BuildingBlocks.Validation.csproj" />
+    <ProjectReference Include="..\TenantFlow.Payments.Contracts\TenantFlow.Payments.Contracts.csproj" />
+    <ProjectReference Include="..\TenantFlow.Payments.Domain\TenantFlow.Payments.Domain.csproj" />
+    <!-- Only contracts: the tenant context, the order to pay, and whether a webhook's tenant exists (ADR-0002, ADR-0022). -->
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <ProjectReference Include="..\..\Orders\TenantFlow.Orders.Contracts\TenantFlow.Orders.Contracts.csproj" />
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+    <!-- The audit event a change writes to the module's outbox (ADR-0026). -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

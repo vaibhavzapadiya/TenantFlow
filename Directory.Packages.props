@@ -1,0 +1,88 @@
+<Project>
+  <!--
+    Central Package Management: every package version lives here and nowhere else.
+    Policy (ADR-0003): third-party packages are adopted only after they have been
+    published for at least 14 days. Microsoft runtime-aligned servicing packages
+    (Microsoft.AspNetCore.*, Microsoft.Extensions.*) track the SDK's runtime patch
+    so security fixes are not delayed.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets this file also pin vulnerable transitive dependencies when needed. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!--
+    Data access (ADR-0012, SPEC-0015). Npgsql stays on the major version its EF Core provider was built against (10);
+    Npgsql, Npgsql.EntityFrameworkCore.PostgreSQL, and Microsoft.EntityFrameworkCore.* move between major versions
+    together. Microsoft.EntityFrameworkCore.* and Microsoft.Extensions.Hosting track the runtime patch (10.0.13).
+  -->
+  <ItemGroup Label="Data access">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
+    <!-- Transitive pin: keeps Design and Npgsql.EntityFrameworkCore.PostgreSQL on one Relational version. Move with them. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <!-- Authentication (ADR-0009). Runtime-aligned servicing package: tracks the runtime patch (10.0.13). -->
+  <ItemGroup Label="Security">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+  </ItemGroup>
+
+  <!-- Validation (ADR-0014). 12.2.0 is inside the 14-day cooldown (ADR-0003). -->
+  <ItemGroup Label="Validation">
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+  </ItemGroup>
+
+  <!-- API documentation (ADR-0019). Runtime-aligned servicing package: tracks the runtime patch (10.0.13). -->
+  <ItemGroup Label="API documentation">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <!-- Development-only API reference UI over the v1 document. 2.17.14 (2026-10-06): 2.18.x is inside the 14-day cooldown (ADR-0003). -->
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.14" />
+  </ItemGroup>
+
+  <!-- Messaging (ADR-0021): the RabbitMQ client used directly, no messaging framework. -->
+  <ItemGroup Label="Messaging">
+    <PackageVersion Include="RabbitMQ.Client" Version="7.2.2" />
+  </ItemGroup>
+
+  <!-- Object storage on S3 in deployed environments (ADR-0024 amendment 1, SPEC-0012 S3c). 4.0.104.2 (2026-10-08): later
+       patches are inside the 14-day cooldown (ADR-0003). -->
+  <ItemGroup Label="Object storage">
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.2" />
+  </ItemGroup>
+
+  <!--
+    Scheduler (ADR-0023, Open Decision 18). The 3.22 line: Quartz 4.0 shipped on 2026-09-03 and changes every few days;
+    3.22.4 (2026-10-05) is the newest 3.x release past the 14-day cooldown (ADR-0003).
+  -->
+  <ItemGroup Label="Scheduling">
+    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.22.4" />
+    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="Hosting">
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup Label="Observability (ADR-0007)">
+    <PackageVersion Include="OpenTelemetry" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <!-- PostgreSQL for database tests where no Compose database is configured, as in CI (ADR-0019). 4.16.0 is inside the 14-day cooldown. -->
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Subscriptions module use cases (ADR-0013) and request validation (ADR-0014). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Subscriptions.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Validation\TenantFlow.BuildingBlocks.Validation.csproj" />
+    <ProjectReference Include="..\TenantFlow.Subscriptions.Domain\TenantFlow.Subscriptions.Domain.csproj" />
+    <!-- Only contracts: the tenant context and memberships, and renewal charges through Payments (ADR-0002, ADR-0023). -->
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <ProjectReference Include="..\..\Payments\TenantFlow.Payments.Contracts\TenantFlow.Payments.Contracts.csproj" />
+    <!-- Whether the subscription's tenant is suspended (review fix R11). -->
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

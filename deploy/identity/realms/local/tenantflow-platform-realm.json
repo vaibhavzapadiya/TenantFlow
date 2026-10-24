@@ -1,0 +1,124 @@
+{
+  "realm": "tenantflow-platform",
+  "displayName": "TenantFlow platform operators (local development only)",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      { "name": "platform-admin", "description": "Tenant lifecycle, first administrators, platform audit, revoking support grants (ADR-0027)." },
+      { "name": "support-operator", "description": "Opens its own time-limited support grants and reads the support views (ADR-0027)." }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "tenantflow-platform-dev-cli",
+      "name": "Local development scripts (platform)",
+      "description": "Public client for the smoke tests and drills only. Uses the password grant, which real clients must not use; they use the authorization code flow with PKCE.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenantflow_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "tenantflow_roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "tenantflow-platform-api-docs",
+      "name": "Local API reference sign-in (platform operators)",
+      "description": "Public browser client for the Development-only Scalar reference at http://localhost:5080/scalar/v1 (SPEC-0014). Authorization code flow with PKCE S256 only.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5080/scalar/*"],
+      "webOrigins": ["http://localhost:5080"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenantflow_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "tenantflow_roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "dev-operator",
+      "email": "dev-operator@tenantflow.test",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Operator",
+      "enabled": true,
+      "realmRoles": ["platform-admin"],
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEV_USER_PASSWORD}", "temporary": false }]
+    },
+    {
+      "username": "dev-support",
+      "email": "dev-support@tenantflow.test",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Support",
+      "enabled": true,
+      "realmRoles": ["support-operator"],
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEV_USER_PASSWORD}", "temporary": false }]
+    }
+  ]
+}

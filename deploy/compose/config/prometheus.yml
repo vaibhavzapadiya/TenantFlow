@@ -1,0 +1,35 @@
+# Prometheus (local observability profile). Metrics arrive from the collector through Prometheus's
+# native OTLP receiver (enabled with --web.enable-otlp-receiver), so no application targets are scraped; the broker is.
+global:
+  scrape_interval: 15s
+
+otlp:
+  # Copy these resource attributes onto every series so dashboards can filter by them.
+  promote_resource_attributes:
+    - service.name
+    - service.namespace
+    - deployment.environment.name
+
+# SLO recording rules and alert rules (ADR-0029, ADR-0030). Each *.rules.yml has a *.rules.test.yml beside it.
+rule_files:
+  - /etc/prometheus/rules/*.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Broker queue depth and dead-letter count (SPEC-0010 criterion 3, decision 4): RabbitMQ's built-in Prometheus
+  # endpoint, per queue (rabbitmq_detailed_queue_messages{queue=...}); a dead-letter queue's name ends in ".dlq".
+  # Queue names are fixed in code, so the label stays bounded.
+  - job_name: rabbitmq
+    metrics_path: /metrics/detailed
+    params:
+      family: [queue_coarse_metrics]
+    static_configs:
+      - targets: ["rabbitmq:15692"]

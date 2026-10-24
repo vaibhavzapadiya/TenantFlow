@@ -1,0 +1,28 @@
+# Open decisions
+
+Every item stays open until an ADR closes it. Items 1–12 come from blueprint section 2.
+Items 13 and later were identified while planning and must also be closed before the milestone shown.
+
+| # | Decision | Provisional position | Close by | Status |
+|---|----------|----------------------|----------|--------|
+| 1 | "Four environments": Local, CI, Development, Staging, Production gives three persistent deployed environments | Three deployed environments unless a Pre-production or Performance environment has a defined purpose and budget | M12 | Open; dev, staging and prod with a $100 monthly budget chosen by the user (2026-10-22); [ADR-0034](decisions/0034-deployed-environments-configuration-parity-and-budget.md) Proposed (closes it when accepted) |
+| 2 | AWS versus GCP | AWS is used only as an example in deployment sketches | M12 (comparison lab before it) | Open; AWS chosen by the user (2026-10-22); [ADR-0032](decisions/0032-aws-and-managed-container-hosting.md) Proposed (closes it when accepted) |
+| 3 | Identity provider: managed OIDC versus self-hosted | Standard OIDC/OAuth 2.0 boundary in code; local development issuer for tests only | M2 | **Closed by [ADR-0009](decisions/0009-identity-provider-and-oidc-boundary.md)**: OIDC boundary, test issuer, Keycloak locally; production provider in M12 |
+| 4 | RabbitMQ versus Kafka | RabbitMQ is the primary broker; Kafka is a comparison lab | M5 | **Closed by [ADR-0021](decisions/0021-messaging-broker-outbox-and-consumers.md)**: RabbitMQ via RabbitMQ.Client; Kafka as an M14 lab |
+| 5 | Maximum scope versus a coherent product | Gated vertical slices; nothing counts as done because a project or interface exists | Ongoing | Policy (see roadmap) |
+| 6 | Event sourcing | Conventional persistence by default; event sourcing as a bounded lab or one justified module | M14 | Open |
+| 7 | gRPC and realtime | REST is the default; gRPC or SignalR/SSE only where a journey earns it | When first needed | Open |
+| 8 | Compliance goals | Build privacy, audit, and access evidence; make no certification claims | M9 | Policy; [ADR-0025](decisions/0025-compliance-goals-data-classification-and-retention.md) Proposed (closes it when accepted) |
+| 9 | Performance targets | Workload model first, then measured targets | M11 | Open |
+| 10 | Which .NET LTS | .NET 10 LTS, SDK 10.0.402 pinned | M0 | **Closed by [ADR-0003](decisions/0003-dotnet-lts-and-dependency-policy.md)**; adopted 2026-10-24 (SPEC-0015), which superseded [ADR-0005](decisions/0005-temporary-dotnet-9-toolchain.md) |
+| 11 | Trust boundaries between user types | Customer, tenant admin, platform admin, support operator, and worker identities never share implicit authority | M2 (platform/support detail by M9) | **Closed by [ADR-0010](decisions/0010-trust-boundaries-between-user-types.md)**: separate schemes and route groups |
+| 12 | Sandbox payments | Provider test mode or deterministic simulator; no raw card data | M6 | **Closed by [ADR-0022](decisions/0022-payments-provider-port-and-order-payment-saga.md)**: deterministic simulator for tests plus a Stripe test-mode adapter; provider tokens only |
+| 13 | Logging pipeline: `Microsoft.Extensions.Logging` with OpenTelemetry export versus Serilog | Prefer MEL + OpenTelemetry to avoid two logging abstractions | M1 | **Closed by [ADR-0007](decisions/0007-logging-pipeline.md)**: MEL + OpenTelemetry |
+| 14 | Local secrets: .NET user-secrets versus a git-ignored `.env` for Compose | Compose reads a git-ignored `.env`; a committed `.env.example` holds non-secret defaults | M1 | **Closed by [ADR-0008](decisions/0008-local-configuration-and-secrets.md)**: `.env` for Compose, user-secrets for the hosts |
+| 15 | Use-case dispatch: MediatR versus direct application services | Direct application services unless pipeline behaviours prove their value | M2 (pulled forward from M3) | **Closed by [ADR-0013](decisions/0013-use-case-dispatch.md)**: direct application services |
+| 16 | Module data ownership in PostgreSQL: schema per module, table prefixes, or separate databases | Schema per module in one database | M2 (pulled forward from M3) | **Closed by [ADR-0012](decisions/0012-module-data-ownership.md)**: schema per module, Migrator owns DDL |
+| 17 | Validation approach: FluentValidation versus built-in minimal API validation | Decide with the first write endpoint | M2 (first write endpoint) | **Closed by [ADR-0014](decisions/0014-input-validation.md)**: FluentValidation in Application |
+| 18 | Persistent scheduler: Quartz.NET, Hangfire, or a custom PostgreSQL-backed scheduler | Decide from failure, visibility, and multi-instance requirements | M7 (pulled forward from M8 by the user) | **Closed by [ADR-0023](decisions/0023-subscriptions-renewal-scheduler-and-refunds.md)**: Quartz.NET (clustered AdoJobStore) running per-module jobs over transactional due rows |
+| 19 | Object storage emulator for local development | Evaluate licensing and S3/GCS API fidelity before choosing | M8 | **Closed by [ADR-0024](decisions/0024-object-storage-and-async-import-export-jobs.md)**: a storage port with a filesystem adapter, no emulator; the S3/GCS adapter comes with M12 |
+| 20 | PostgreSQL row-level security as defense in depth | Decide after the tenant context exists, with pooled-connection leakage tests | M2 | **Closed by [ADR-0011](decisions/0011-postgresql-row-level-security.md)**: adopt; implement in M3 |
+| 21 | Local Docker access for integration tests: Testcontainers on Windows cannot reach the Docker engine inside WSL without exposing it | Compare running tests inside WSL, Docker Desktop, and a loopback-only daemon socket; CI on Linux is unaffected | M3 | Closed by [ADR-0019](decisions/0019-m3-conventions.md) |

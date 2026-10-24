@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Transport-agnostic building blocks shared by every module (ADR-0016). Deliberately tiny and free of
+    package dependencies: no HTTP, no persistence, no logging.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Abstractions</RootNamespace>
+  </PropertyGroup>
+
+</Project>

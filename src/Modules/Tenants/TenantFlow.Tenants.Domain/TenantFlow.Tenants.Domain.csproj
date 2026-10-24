@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tenants module domain: the tenant and its lifecycle. No HTTP, broker, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Tenants.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+    <!-- The audit event a lifecycle change writes to the outbox (ADR-0026); only Audit's contract, never its internals. -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

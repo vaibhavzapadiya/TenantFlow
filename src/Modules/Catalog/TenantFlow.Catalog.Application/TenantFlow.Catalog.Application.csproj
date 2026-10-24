@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Catalog module use cases (ADR-0013) and request validation (ADR-0014). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Catalog.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Validation\TenantFlow.BuildingBlocks.Validation.csproj" />
+    <ProjectReference Include="..\TenantFlow.Catalog.Domain\TenantFlow.Catalog.Domain.csproj" />
+    <!-- Only the contract: the tenant context (ADR-0002, ADR-0010). -->
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

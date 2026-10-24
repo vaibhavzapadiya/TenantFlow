@@ -1,0 +1,114 @@
+{
+  "realm": "tenantflow",
+  "displayName": "TenantFlow",
+  "enabled": true,
+  "sslRequired": "all",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "verifyEmail": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(12) and notUsername and passwordHistory(3)",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "browserFlow": "browser with optional otp",
+  "requiredActions": [
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10,
+      "config": {}
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 20,
+      "config": {}
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "browser with optional otp",
+      "description": "Cookie, or username and password, then an OTP for users who have enrolled one (decided by the user, 2026-10-23).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-cookie", "authenticatorFlow": false, "requirement": "ALTERNATIVE", "priority": 10, "userSetupAllowed": false },
+        { "authenticatorFlow": true, "flowAlias": "browser with optional otp forms", "requirement": "ALTERNATIVE", "priority": 20, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "browser with optional otp forms",
+      "description": "Password, then the OTP step when the user has an OTP credential.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-username-password-form", "authenticatorFlow": false, "requirement": "REQUIRED", "priority": 10, "userSetupAllowed": false },
+        { "authenticatorFlow": true, "flowAlias": "browser with optional otp conditional", "requirement": "CONDITIONAL", "priority": 20, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "browser with optional otp conditional",
+      "description": "Runs only when the user has configured an OTP credential.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "conditional-user-configured", "authenticatorFlow": false, "requirement": "REQUIRED", "priority": 10, "userSetupAllowed": false },
+        { "authenticator": "auth-otp-form", "authenticatorFlow": false, "requirement": "REQUIRED", "priority": 20, "userSetupAllowed": false }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "tenantflow-client",
+      "name": "TenantFlow API clients",
+      "description": "Public client for tenant users' tools: authorization code flow with PKCE and a loopback redirect (RFC 8252). No password grant, which would skip the browser flow and its OTP step.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": ["http://127.0.0.1/*"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://127.0.0.1/*"
+      },
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenantflow-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tenantflow-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

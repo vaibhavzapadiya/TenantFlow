@@ -1,0 +1,52 @@
+<Project>
+  <!--
+    Repository-wide build policy. Every project under this folder imports it.
+    Rationale: docs/architecture/decisions/0003-dotnet-lts-and-dependency-policy.md
+               docs/architecture/decisions/0004-build-quality-gates.md
+  -->
+
+  <PropertyGroup Label="Framework and language">
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Testing">
+    <!--
+      SPEC-0015: the .NET 10 SDK refuses to run a Microsoft.Testing.Platform application through the VSTest target,
+      and xunit.v3 is one by default. Opting out keeps the gate command, CI's trx and Cobertura flags, and the
+      filter option of `dotnet test` exactly as ADR-0003 decided; the tests run through xunit.runner.visualstudio.
+      The test hosts that invoke Microsoft.Testing.Platform directly through `dotnet run` are unaffected.
+    -->
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Static analysis">
+    <!-- Pinned rule set so an SDK upgrade cannot silently add new errors. -->
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Low/moderate advisories stay visible as warnings; high/critical fail the build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902</WarningsNotAsErrors>
+    <!-- Required for IDE0005 (unnecessary usings) to be reported during build. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- We do not require XML docs on every public member; public contracts get them deliberately. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Supply chain and reproducibility">
+    <!-- No packages.lock.json files (removed at the user's request, 2026-10-23): versions come from
+         Directory.Packages.props, with transitive pinning there. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Product metadata">
+    <Product>TenantFlow</Product>
+    <Company>TenantFlow</Company>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

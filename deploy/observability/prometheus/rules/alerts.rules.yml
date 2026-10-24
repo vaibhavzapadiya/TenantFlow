@@ -1,0 +1,295 @@
+# Alert rules (ADR-0029, SPEC-0010 criteria 10 to 13). Every alert has severity (page or ticket), category (cause, event or
+# symptom: Alertmanager inhibits symptoms while a cause fires) and a runbook path. Annotations hold fixed text and
+# closed label values only, never a value from a request. Tests: alerts.rules.test.yml ("docker compose --profile checks run --rm rule-tests").
+groups:
+  - name: tenantflow-causes
+    rules:
+      - alert: DatabaseDown
+        expr: >-
+          min by (service_name) (tenantflow_health_status{check="postgresql"}) == 0
+        for: 1m
+        labels:
+          severity: page
+          category: cause
+          dependency: database
+        annotations:
+          summary: "{{ $labels.service_name }} cannot reach PostgreSQL"
+          runbook: docs/operations/runbooks/database-saturation-and-locks.md
+      - alert: BrokerDown
+        expr: >-
+          min by (service_name) (tenantflow_health_status{check="rabbitmq"}) == 0
+        for: 1m
+        labels:
+          severity: page
+          category: cause
+          dependency: broker
+        annotations:
+          summary: "{{ $labels.service_name }} cannot reach RabbitMQ"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+      - alert: ApiTelemetryMissing
+        expr: >-
+          absent_over_time(dotnet_process_cpu_time_seconds_total{service_name="tenantflow-api"}[5m])
+        labels:
+          severity: page
+          category: cause
+          dependency: api
+        annotations:
+          summary: "No telemetry from the API for 5 minutes: the host or the collector is down"
+          runbook: docs/operations/runbooks/hosts-and-scheduled-jobs.md
+      - alert: WorkerTelemetryMissing
+        expr: >-
+          absent_over_time(tenantflow_worker_heartbeats_total{service_name="tenantflow-worker"}[5m])
+        labels:
+          severity: page
+          category: cause
+          dependency: worker
+        annotations:
+          summary: "No Worker heartbeat for 5 minutes: the Worker or the collector is down"
+          runbook: docs/operations/runbooks/hosts-and-scheduled-jobs.md
+  - name: tenantflow-events
+    rules:
+      - alert: RefundReversed
+        expr: >-
+          (sum (increase(tenantflow_refunds_completed_total{outcome="reversed"}[15m])) > 0)
+          or (sum (tenantflow_refunds_completed_total{outcome="reversed"}) unless sum (tenantflow_refunds_completed_total{outcome="reversed"} offset 15m))
+        labels:
+          severity: page
+          category: event
+        annotations:
+          summary: "A provider failed a refund after reporting success: a customer was not refunded (PY-A25)"
+          runbook: docs/operations/runbooks/stuck-payment-and-reconciliation.md
+      - alert: DeadTimer
+        expr: >-
+          max by (module) (tenantflow_messaging_dead_timers) > 0
+        for: 2m
+        labels:
+          severity: page
+          category: event
+        annotations:
+          summary: "A workflow timer of {{ $labels.module }} is dead and will not run again until an operator clears it (MW-A07)"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+      - alert: DeadLettersGrowing
+        expr: >-
+          (sum by (consumer) (increase(tenantflow_messaging_consumed_total{outcome="dead_lettered"}[10m])) > 0)
+          or (sum by (consumer) (tenantflow_messaging_consumed_total{outcome="dead_lettered"}) unless sum by (consumer) (tenantflow_messaging_consumed_total{outcome="dead_lettered"} offset 10m))
+        labels:
+          severity: page
+          category: event
+        annotations:
+          summary: "Messages from {{ $labels.consumer }} were dead-lettered in the last 10 minutes"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+      - alert: RetentionRunFailed
+        expr: >-
+          (sum (increase(tenantflow_scheduling_runs_total{job="retention", outcome="failed"}[26h])) > 0)
+          or (sum (tenantflow_scheduling_runs_total{job="retention", outcome="failed"}) unless sum (tenantflow_scheduling_runs_total{job="retention", outcome="failed"} offset 26h))
+        labels:
+          severity: page
+          category: event
+        annotations:
+          summary: "The daily retention run failed: expired personal data was not removed (DP-A12)"
+          runbook: docs/operations/runbooks/hosts-and-scheduled-jobs.md
+      - alert: CrossTenantProbing
+        expr: >-
+          sum(increase(tenantflow_auth_denials_total{reason="not_a_member"}[2m])) > 10
+        for: 3m
+        labels:
+          severity: page
+          category: event
+        annotations:
+          summary: "More than 10 requests in 2 minutes were refused because the caller is not a member of the tenant they named"
+          runbook: docs/operations/runbooks/suspected-cross-tenant-access.md
+          description: "The series carries scheme and reason only; the caller and tenant are in the denial logs (event 2001) and traces."
+  - name: tenantflow-symptoms
+    rules:
+      - alert: OutboxStale
+        expr: >-
+          max by (module) (tenantflow_outbox_oldest_pending_age_seconds) > 300
+        for: 5m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The oldest unpublished outbox row of {{ $labels.module }} is older than 5 minutes"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+      - alert: ScheduledJobFailing
+        expr: >-
+          sum by (job) (increase(tenantflow_scheduling_runs_total{outcome="failed", job!="retention"}[15m])) >= 3
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The scheduled job {{ $labels.job }} failed at least 3 times in 15 minutes"
+          runbook: docs/operations/runbooks/hosts-and-scheduled-jobs.md
+      - alert: ScheduledJobLate
+        expr: >-
+          histogram_quantile(0.95, sum by (le, job) (rate(tenantflow_scheduling_lateness_seconds_bucket[5m]))) > 120
+        for: 10m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "Fires of {{ $labels.job }} start more than 2 minutes late"
+          runbook: docs/operations/runbooks/hosts-and-scheduled-jobs.md
+      - alert: PaymentsStuck
+        expr: >-
+          max by (kind) (tenantflow_payments_oldest_unresolved_age_seconds) > 300
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+          dependency: provider
+        annotations:
+          summary: "A {{ $labels.kind }} checked by reconciliation is still unresolved more than 5 minutes after it was created"
+          runbook: docs/operations/runbooks/stuck-payment-and-reconciliation.md
+      - alert: ApiServerErrors
+        expr: >-
+          sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api", http_response_status_code=~"5.."}[5m]))
+          / sum(rate(http_server_request_duration_seconds_count{service_name="tenantflow-api"}[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "More than 5% of API requests answer 5xx"
+          runbook: docs/operations/runbooks/api-errors.md
+      - alert: ImportExportBacklog
+        expr: >-
+          max by (kind) (tenantflow_imports_exports_oldest_due_age_seconds) > 600
+        for: 5m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "A due {{ $labels.kind }} job has waited more than 10 minutes"
+          runbook: docs/operations/runbooks/failed-import-export.md
+      - alert: ImportExportFailures
+        expr: >-
+          sum by (kind) (increase(tenantflow_imports_exports_jobs_total{outcome="failed"}[30m])) > 0
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "{{ $labels.kind }} jobs failed in the last 30 minutes"
+          runbook: docs/operations/runbooks/failed-import-export.md
+  - name: tenantflow-slo-burn
+    rules:
+      - alert: SloCatalogReadFastBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate1h{slo="catalog_read"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="catalog_read"}))
+          and on (slo) tenantflow:slo_error_ratio:rate5m{slo="catalog_read"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="catalog_read"}))
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The catalog read SLO burns its error budget 14.4x too fast (1h and 5m windows)"
+          runbook: docs/operations/runbooks/api-errors.md
+          description: "See docs/operations/slos/catalog-read.md. The target is provisional (ADR-0030)."
+      - alert: SloCatalogReadSlowBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate6h{slo="catalog_read"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="catalog_read"}))
+          and on (slo) tenantflow:slo_error_ratio:rate30m{slo="catalog_read"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="catalog_read"}))
+        for: 15m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "The catalog read SLO burns its error budget 6x too fast (6h and 30m windows)"
+          runbook: docs/operations/runbooks/api-errors.md
+          description: "See docs/operations/slos/catalog-read.md. The target is provisional (ADR-0030)."
+      - alert: SloOrderSubmissionFastBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate1h{slo="order_submission"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="order_submission"}))
+          and on (slo) tenantflow:slo_error_ratio:rate5m{slo="order_submission"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="order_submission"}))
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The order submission SLO burns its error budget 14.4x too fast (1h and 5m windows)"
+          runbook: docs/operations/runbooks/api-errors.md
+          description: "See docs/operations/slos/order-submission.md. The target is provisional (ADR-0030)."
+      - alert: SloOrderSubmissionSlowBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate6h{slo="order_submission"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="order_submission"}))
+          and on (slo) tenantflow:slo_error_ratio:rate30m{slo="order_submission"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="order_submission"}))
+        for: 15m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "The order submission SLO burns its error budget 6x too fast (6h and 30m windows)"
+          runbook: docs/operations/runbooks/api-errors.md
+          description: "See docs/operations/slos/order-submission.md. The target is provisional (ADR-0030)."
+      - alert: SloPaymentResolutionFastBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate1h{slo="payment_resolution"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="payment_resolution"}))
+          and on (slo) tenantflow:slo_error_ratio:rate5m{slo="payment_resolution"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="payment_resolution"}))
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The payment resolution SLO burns its error budget 14.4x too fast (1h and 5m windows)"
+          runbook: docs/operations/runbooks/stuck-payment-and-reconciliation.md
+          description: "See docs/operations/slos/payment-resolution.md. The target is provisional (ADR-0030)."
+      - alert: SloPaymentResolutionSlowBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate6h{slo="payment_resolution"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="payment_resolution"}))
+          and on (slo) tenantflow:slo_error_ratio:rate30m{slo="payment_resolution"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="payment_resolution"}))
+        for: 15m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "The payment resolution SLO burns its error budget 6x too fast (6h and 30m windows)"
+          runbook: docs/operations/runbooks/stuck-payment-and-reconciliation.md
+          description: "See docs/operations/slos/payment-resolution.md. The target is provisional (ADR-0030)."
+      - alert: SloExportCompletionFastBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate1h{slo="export_completion"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="export_completion"}))
+          and on (slo) tenantflow:slo_error_ratio:rate5m{slo="export_completion"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="export_completion"}))
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The export completion SLO burns its error budget 14.4x too fast (1h and 5m windows)"
+          runbook: docs/operations/runbooks/failed-import-export.md
+          description: "See docs/operations/slos/export-completion.md. The target is provisional (ADR-0030)."
+      - alert: SloExportCompletionSlowBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate6h{slo="export_completion"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="export_completion"}))
+          and on (slo) tenantflow:slo_error_ratio:rate30m{slo="export_completion"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="export_completion"}))
+        for: 15m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "The export completion SLO burns its error budget 6x too fast (6h and 30m windows)"
+          runbook: docs/operations/runbooks/failed-import-export.md
+          description: "See docs/operations/slos/export-completion.md. The target is provisional (ADR-0030)."
+      - alert: SloEventDeliveryFastBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate1h{slo="event_delivery"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="event_delivery"}))
+          and on (slo) tenantflow:slo_error_ratio:rate5m{slo="event_delivery"} > on (slo) (14.4 * (1 - tenantflow:slo_objective{slo="event_delivery"}))
+        for: 2m
+        labels:
+          severity: page
+          category: symptom
+        annotations:
+          summary: "The event delivery SLO burns its error budget 14.4x too fast (1h and 5m windows)"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+          description: "See docs/operations/slos/event-delivery.md. The target is provisional (ADR-0030)."
+      - alert: SloEventDeliverySlowBurn
+        expr: >-
+          tenantflow:slo_error_ratio:rate6h{slo="event_delivery"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="event_delivery"}))
+          and on (slo) tenantflow:slo_error_ratio:rate30m{slo="event_delivery"} > on (slo) (6 * (1 - tenantflow:slo_objective{slo="event_delivery"}))
+        for: 15m
+        labels:
+          severity: ticket
+          category: symptom
+        annotations:
+          summary: "The event delivery SLO burns its error budget 6x too fast (6h and 30m windows)"
+          runbook: docs/operations/runbooks/queue-backlog-and-poison-messages.md
+          description: "See docs/operations/slos/event-delivery.md. The target is provisional (ADR-0030)."

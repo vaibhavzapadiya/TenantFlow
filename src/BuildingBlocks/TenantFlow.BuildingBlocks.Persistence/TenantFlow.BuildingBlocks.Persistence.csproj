@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Persistence helpers shared by tenant-owned modules: the row-level security context (ADR-0011, ADR-0019) and the
+    per-tenant retention runner (ADR-0025), which needs Npgsql's data source.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Persistence</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+</Project>

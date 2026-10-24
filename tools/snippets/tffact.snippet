@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>TenantFlow xUnit v3 fact</Title>
+      <Shortcut>tffact</Shortcut>
+      <Description>An async xUnit v3 test named as a sentence, with the test's cancellation token.</Description>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal><ID>Name</ID><Default>The_behaviour_holds_when_the_condition_is_met</Default><ToolTip>The behaviour, as a sentence</ToolTip></Literal>
+      </Declarations>
+      <Code Language="CSharp"><![CDATA[[Fact]
+    public async Task $Name$()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        $end$
+    }]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

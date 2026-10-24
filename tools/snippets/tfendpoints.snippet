@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>TenantFlow endpoint group</Title>
+      <Shortcut>tfendpoints</Shortcut>
+      <Description>A tenant-scoped minimal API endpoint group: route group, OpenAPI tag, permission and Problem Details.</Description>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal><ID>Feature</ID><Default>Widget</Default><ToolTip>Feature name, singular (WidgetEndpoints, MapWidgetEndpoints)</ToolTip></Literal>
+        <Literal><ID>route</ID><Default>widgets</Default><ToolTip>Route segment under /tenants/{tenantId}</ToolTip></Literal>
+        <Literal><ID>Tag</ID><Default>Widgets</Default><ToolTip>OpenAPI tag: the group shown in Scalar</ToolTip></Literal>
+        <Literal><ID>Permission</ID><Default>WidgetRead</Default><ToolTip>A TenantPermissions member</ToolTip></Literal>
+        <Literal><ID>Service</ID><Default>WidgetService</Default><ToolTip>Application service the endpoint calls</ToolTip></Literal>
+      </Declarations>
+      <Code Language="CSharp"><![CDATA[internal static class $Feature$Endpoints
+{
+    public static IEndpointRouteBuilder Map$Feature$Endpoints(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/tenants/{tenantId}/$route$")
+            .WithTags("$Tag$");
+
+        group.MapGet("/", static async ($Service$ service, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await service.ListAsync(cancellationToken)))
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireTenantPermission(TenantPermissions.$Permission$);$end$
+
+        return endpoints;
+    }
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

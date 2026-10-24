@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>TenantFlow cross-tenant denial test</Title>
+      <Shortcut>tfdeny</Shortcut>
+      <Description>Rule 1: an administrator of tenant B cannot reach tenant A's resource (404 tenant.not_found, as the isolation matrix expects). For a database test class with fixture.Harness.</Description>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal><ID>Resource</ID><Default>widget</Default><ToolTip>The resource, for the test name</ToolTip></Literal>
+        <Literal><ID>path</ID><Default>widgets</Default><ToolTip>Route segment under /v1/tenants/{tenantId}</ToolTip></Literal>
+      </Declarations>
+      <Code Language="CSharp" Delimiter="%"><![CDATA[[Fact]
+    public async Task An_administrator_of_another_tenant_cannot_reach_a_%Resource%()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var suffix = Guid.NewGuid().ToString("N");
+        var a = await fixture.Harness.CreateTenantAsync("A");
+        var b = await fixture.Harness.CreateTenantAsync("B");
+        var adminB = $"admin-b-{suffix}";
+        await fixture.Harness.AddAsync(b, adminB, "tenant-admin", TestIssuer.Issuer);
+        // Arrange: create the resource in tenant A.
+        %end%
+
+        using var client = Factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/v1/tenants/{a}/%path%");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestIssuer.Shared.CreateToken(adminB));
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

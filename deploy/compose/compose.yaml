@@ -1,0 +1,256 @@
+# TenantFlow's local environment (ADR-0037). From the repository root, "docker compose up -d" starts the dependencies,
+# provisions the database roles (the Migrator's provision command), and applies the migrations; the root compose.yaml includes this
+# file. See docs/operations/local-environment.md and SPEC-0001.
+#
+# Rules for this file:
+# - Every published port binds to 127.0.0.1 (ComposeFileTests, on every build).
+# - Images are pinned to an exact version and digest; Dependabot proposes updates after a 14-day cooldown. A service
+#   built here (the Migrator, which also runs the provisioner) uses the pinned base images of deploy/docker/Dockerfile.
+# - Every value has a local-only default, so no .env is needed. deploy/compose/.env (git-ignored) overrides any of
+#   them; deploy/compose/.env.example lists them. The hosts' local settings (appsettings.Development.json) match the
+#   defaults, so an override there also needs one in the host's user-secrets (ADR-0008).
+name: tenantflow
+
+services:
+  postgres:
+    image: postgres:17.11@sha256:b8faeff7712663c2773a190181e1246e37e364b887611c04658c28b44e2408fe
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tenantflow}
+      POSTGRES_USER: ${POSTGRES_USER:-tenantflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tenantflow-local-only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # TCP, not the Unix socket: during first-start initialization the image runs a temporary server
+      # on the socket only, which would otherwise report "ready" before the real server listens.
+      test: ["CMD-SHELL", "pg_isready --host=127.0.0.1 --username=$${POSTGRES_USER} --dbname=$${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  # Local OIDC provider (ADR-0009, ADR-0010). Development only: both realms (tenant users, platform
+  # operators) are imported on every new container from committed files with synthetic users. Their
+  # password is the placeholder ${KEYCLOAK_DEV_USER_PASSWORD}, which Keycloak fills in from this
+  # container's environment during the import; changing it in .env recreates the container.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-tenantflow-local-only}
+      KEYCLOAK_DEV_USER_PASSWORD: ${KEYCLOAK_DEV_USER_PASSWORD:-tenantflow-dev-user-local-only}
+      # Fixes the token issuer to the address the API trusts (Authentication:Tenant:Authority).
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8080}
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ../identity/realms/local:/opt/keycloak/data/import:ro
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8080}:8080"
+    healthcheck:
+      # The image has no curl or wget; bash's /dev/tcp asks the management port for readiness.
+      # In this double-quoted YAML string the CR and LF escapes become the raw bytes HTTP needs;
+      # keep the double quotes.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  # Message broker (ADR-0021). The Worker publishes the outbox here and consumes from it; the management UI
+  # (http://localhost:15672) is for inspecting queues and the dead-letter queue locally.
+  rabbitmq:
+    image: rabbitmq:4.3.6-management-alpine@sha256:3505b6096cdbc083bcc363e74366f575ecd0c1a55be4dadcbc60fa08e34647e1
+    hostname: tenantflow-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-tenantflow}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-tenantflow-rabbitmq-local-only}
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      # Ready only when the node is up and accepts AMQP connections, not merely when the process runs.
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 15s
+    restart: unless-stopped
+
+  # Creates or re-asserts the owner and application roles (ADR-0011, ADR-0012) as the Compose superuser, then exits:
+  # "TenantFlow.Migrator provision", the same command the deployed provisioning task runs. Idempotent, so it runs on
+  # every start, and a password changed in .env is applied on the next "docker compose up".
+  provisioner:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: migrator
+    image: tenantflow-migrator:local
+    command: ["provision"]
+    environment:
+      Provisioning__Database__Host: postgres
+      Provisioning__Database__Database: ${POSTGRES_DB:-tenantflow}
+      Provisioning__Database__Username: ${POSTGRES_USER:-tenantflow}
+      Provisioning__Database__Password: ${POSTGRES_PASSWORD:-tenantflow-local-only}
+      # The Compose network only; deployed environments verify the server (VerifyFull).
+      Provisioning__Database__SslMode: Disable
+      Provisioning__Database__OwnerPassword: ${TENANTFLOW_OWNER_PASSWORD:-tenantflow-owner-local-only}
+      Provisioning__Database__AppPassword: ${TENANTFLOW_APP_PASSWORD:-tenantflow-app-local-only}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Applies the migrations, then exits (ADR-0012: the Migrator is the only process that changes the schema, as the owner
+  # role). Built from the same Dockerfile target as the deployed image; "docker compose up -d --build" rebuilds it
+  # after new migrations. Applied migrations are skipped, so it is safe on every start.
+  migrator:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: migrator
+    image: tenantflow-migrator:local
+    environment:
+      # A value containing ';' would need quoting in this connection string; the defaults have none.
+      ConnectionStrings__TenantFlowOwner: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tenantflow};Username=tenantflow_owner;Password=${TENANTFLOW_OWNER_PASSWORD:-tenantflow-owner-local-only}
+    depends_on:
+      provisioner:
+        condition: service_completed_successfully
+    restart: "no"
+
+  # ---- Observability profile: docker compose --profile observability up -d -----------------
+  # Hosts export OTLP to the collector on 127.0.0.1:4317; it forwards to Tempo, Prometheus, and Loki.
+
+  otel-collector:
+    profiles: [observability]
+    image: otel/opentelemetry-collector-contrib:0.162.0@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+    depends_on: [prometheus, loki, tempo]
+    restart: unless-stopped
+
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-otlp-receiver
+      # 7 days of metrics (ADR-0025, SPEC-0010 criterion 8); the smoke tests read it back.
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Recording and alert rules with their promtool tests (ADR-0029); the "rule-tests" service checks and tests them.
+      - ../observability/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  loki:
+    profiles: [observability]
+    image: grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./config/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
+    restart: unless-stopped
+
+  tempo:
+    profiles: [observability]
+    image: grafana/tempo:3.1.0@sha256:3076b8dcdfb32fd6bc5ccef85e7b7313e6199b9cb84366257fc17ecb696db5fd
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:${TEMPO_PORT:-3200}:3200"
+    restart: unless-stopped
+
+  # Alert routing (ADR-0029): Prometheus evaluates the rules and sends firing alerts here; locally the receiver is null.
+  alertmanager:
+    profiles: [observability]
+    image: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  grafana:
+    profiles: [observability]
+    image: grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-tenantflow-local-only}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Everything needed is built in; no plugin downloads from grafana.com at startup.
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      # Only the folders TenantFlow provisions: mounting over all of provisioning/ hides the image's other folders.
+      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      # Dashboards as code (ADR-0029): read-only in Grafana, edited in the repository.
+      - ../observability/grafana/dashboards:/etc/grafana/dashboards/tenantflow:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    depends_on: [prometheus, loki, tempo]
+    restart: unless-stopped
+
+  # ---- Checks profile (ADR-0029): docker compose --profile checks run --rm rule-tests ---------------------
+  # Checks and unit-tests the recording and alert rules with promtool, after amtool has checked the Alertmanager
+  # configuration, from the same pinned images as the services above (ComposeFileTests). Every *.rules.yml needs a
+  # *.rules.test.yml beside it (ObservabilityConfigTests). Needs only the Docker engine; starts nothing else.
+  alertmanager-check:
+    profiles: [checks]
+    image: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    entrypoint: ["amtool", "check-config", "/etc/alertmanager/alertmanager.yml"]
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+  rule-tests:
+    profiles: [checks]
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    working_dir: /etc/prometheus/rules
+    entrypoint: ["sh", "-c", "promtool check rules *.rules.yml && promtool test rules *.rules.test.yml"]
+    volumes:
+      - ../observability/prometheus/rules:/etc/prometheus/rules:ro
+    depends_on:
+      alertmanager-check:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
+  alertmanager-data:

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The IdentityAccess module's public surface for other modules (ADR-0002): the tenant context that tenant-owned code
+    reads. Interfaces and plain data only, so a consumer can read who is acting in which tenant but can never set it.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.IdentityAccess.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

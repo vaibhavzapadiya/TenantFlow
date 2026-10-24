@@ -1,0 +1,57 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+
+# Test and coverage output
+TestResults/
+*.trx
+*.coverage
+*.cobertura.xml
+coverage*/
+
+# NuGet (CI restores into the workspace)
+.nuget/
+*.nupkg
+*.snupkg
+
+# IDEs
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+*.swp
+*.DotSettings.user
+
+# Secrets and local environment: never commit these.
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+appsettings.*.local.json
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code: personal settings stay local; .claude/settings.json is shared.
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Local object storage of uploads and exports (ADR-0024): Storage:Root in Development.
+.storage/
+
+# Terraform (ADR-0033): state lives only in the remote backend; plans and local caches may hold secrets.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.auto.tfvars
+*.local.tfvars

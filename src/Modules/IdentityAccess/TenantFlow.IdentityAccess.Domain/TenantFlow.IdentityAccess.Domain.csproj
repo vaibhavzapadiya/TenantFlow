@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- IdentityAccess module domain: memberships, roles, permissions, and their audit. No HTTP or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.IdentityAccess.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <!-- The audit event a membership change writes to the outbox (ADR-0026); only Audit's contract, never its internals. -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

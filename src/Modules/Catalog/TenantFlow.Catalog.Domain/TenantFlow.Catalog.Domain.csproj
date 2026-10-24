@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Catalog module domain: products. No HTTP, broker, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Catalog.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Catalog.Contracts\TenantFlow.Catalog.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

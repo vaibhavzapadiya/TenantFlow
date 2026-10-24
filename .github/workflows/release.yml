@@ -1,0 +1,201 @@
+# Release pipeline (SPEC-0012 S4, ADR-0034): build once on main, then promote the same digests staging → prod.
+# Starts only after ci succeeds for a push to main. Defined while the push is on hold; its first run comes with a remote.
+#
+# GitHub setup it expects (deploy/terraform/README.md):
+# - Repository variables AWS_REGION and AWS_IMAGE_PUSH_ROLE_ARN (shared stack output image_push_role_arn).
+# - Environments staging and prod (prod with required reviewers), each with the variables AWS_DEPLOY_ROLE_ARN,
+#   ECS_CLUSTER, MIGRATOR_SUBNETS, MIGRATOR_SECURITY_GROUP and API_BASE_URL from its environment stack's outputs.
+# No AWS access key exists anywhere: every AWS call uses a role session from the run's OIDC token (criterion 9).
+name: release
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, SBOM, provenance, push
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      commit: ${{ github.event.workflow_run.head_sha }}
+      api: ${{ steps.images.outputs.api }}
+      worker: ${{ steps.images.outputs.worker }}
+      migrator: ${{ steps.images.outputs.migrator }}
+      keycloak: ${{ steps.images.outputs.keycloak }}
+    steps:
+      - name: Checkout the commit ci tested
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: AWS role session for pushing images (main only)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_IMAGE_PUSH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The tag is the commit, and the repositories are immutable, so a tag names exactly one build (criterion 10).
+      - name: Build and push api
+        id: api
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: api
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/tenantflow/api:${{ github.event.workflow_run.head_sha }}
+          # The image names its own commit and source, so it is traceable without the registry's tag.
+          labels: |
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Build and push worker
+        id: worker
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: worker
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/tenantflow/worker:${{ github.event.workflow_run.head_sha }}
+          # The image names its own commit and source, so it is traceable without the registry's tag.
+          labels: |
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Build and push migrator
+        id: migrator
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: migrator
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/tenantflow/migrator:${{ github.event.workflow_run.head_sha }}
+          # The image names its own commit and source, so it is traceable without the registry's tag.
+          labels: |
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      # Keycloak is built and attested with every release, but the operator rolls it out with terraform apply
+      # (keycloak_image_tag), so a single Keycloak task restarts only when its image actually changes.
+      - name: Build and push keycloak
+        id: keycloak
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/keycloak/Dockerfile
+          target: keycloak
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/tenantflow/keycloak:${{ github.event.workflow_run.head_sha }}
+          # The image names its own commit and source, so it is traceable without the registry's tag.
+          labels: |
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      # Signed provenance from GitHub, stored next to each image; the deploy job verifies it before running anything.
+      - name: Attest api
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.ecr.outputs.registry }}/tenantflow/api
+          subject-digest: ${{ steps.api.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest worker
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.ecr.outputs.registry }}/tenantflow/worker
+          subject-digest: ${{ steps.worker.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest migrator
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.ecr.outputs.registry }}/tenantflow/migrator
+          subject-digest: ${{ steps.migrator.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest keycloak
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.ecr.outputs.registry }}/tenantflow/keycloak
+          subject-digest: ${{ steps.keycloak.outputs.digest }}
+          push-to-registry: true
+
+      - name: Images by digest
+        id: images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          API: ${{ steps.api.outputs.digest }}
+          WORKER: ${{ steps.worker.outputs.digest }}
+          MIGRATOR: ${{ steps.migrator.outputs.digest }}
+          KEYCLOAK: ${{ steps.keycloak.outputs.digest }}
+        run: |
+          {
+            echo "api=$REGISTRY/tenantflow/api@$API"
+            echo "worker=$REGISTRY/tenantflow/worker@$WORKER"
+            echo "migrator=$REGISTRY/tenantflow/migrator@$MIGRATOR"
+            echo "keycloak=$REGISTRY/tenantflow/keycloak@$KEYCLOAK"
+          } >> "$GITHUB_OUTPUT"
+
+  staging:
+    name: Deploy to staging
+    needs: build
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+      attestations: read
+    with:
+      environment: staging
+      commit: ${{ needs.build.outputs.commit }}
+      api: ${{ needs.build.outputs.api }}
+      worker: ${{ needs.build.outputs.worker }}
+      migrator: ${{ needs.build.outputs.migrator }}
+
+  # The same digests staging just ran (criterion 10), after a reviewer approves the prod environment.
+  prod:
+    name: Promote to prod
+    needs: [build, staging]
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+      attestations: read
+    with:
+      environment: prod
+      commit: ${{ needs.build.outputs.commit }}
+      api: ${{ needs.build.outputs.api }}
+      worker: ${{ needs.build.outputs.worker }}
+      migrator: ${{ needs.build.outputs.migrator }}

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Subscriptions module domain: plans, subscriptions and their state table (SPEC-0007, ADR-0023). No HTTP, provider, or database dependency. -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Subscriptions.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <!-- Only the payment-method token rule (PaymentMethodTokens), so a subscription never stores card data. -->
+    <ProjectReference Include="..\..\Payments\TenantFlow.Payments.Contracts\TenantFlow.Payments.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

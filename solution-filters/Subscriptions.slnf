@@ -1,0 +1,18 @@
+{
+  "solution": {
+    "path": "..\\TenantFlow.sln",
+    "projects": [
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Abstractions\\TenantFlow.BuildingBlocks.Abstractions.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Messaging\\TenantFlow.BuildingBlocks.Messaging.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Persistence\\TenantFlow.BuildingBlocks.Persistence.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Validation\\TenantFlow.BuildingBlocks.Validation.csproj",
+      "src\\Modules\\IdentityAccess\\TenantFlow.IdentityAccess.Contracts\\TenantFlow.IdentityAccess.Contracts.csproj",
+      "src\\Modules\\Payments\\TenantFlow.Payments.Contracts\\TenantFlow.Payments.Contracts.csproj",
+      "src\\Modules\\Subscriptions\\TenantFlow.Subscriptions.Application\\TenantFlow.Subscriptions.Application.csproj",
+      "src\\Modules\\Subscriptions\\TenantFlow.Subscriptions.Domain\\TenantFlow.Subscriptions.Domain.csproj",
+      "src\\Modules\\Subscriptions\\TenantFlow.Subscriptions.Infrastructure\\TenantFlow.Subscriptions.Infrastructure.csproj",
+      "src\\Modules\\Tenants\\TenantFlow.Tenants.Contracts\\TenantFlow.Tenants.Contracts.csproj",
+      "tests\\Subscriptions\\TenantFlow.Subscriptions.Tests\\TenantFlow.Subscriptions.Tests.csproj"
+    ]
+  }
+}

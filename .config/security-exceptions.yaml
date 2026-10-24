@@ -1,0 +1,405 @@
+# Reviewed exceptions to the security scans (SPEC-0009 criterion 13, ADR-0028 decision 3).
+# Each entry: tool (secrets | dependencies | images | config | iac), id, target, reason, owner, expires (yyyy-MM-dd).
+# Ids: secrets "rule:path" or a gitleaks fingerprint; dependencies a GHSA id; images a CVE id; config the finding the
+# scan prints; iac a Trivy check id. An expired or incomplete entry fails the build (SecurityScanTests); the scans in
+# tests/Security skip what it names.
+# Never add an entry to make a scan pass without a reason a reviewer can check.
+exceptions:
+  - tool: secrets
+    id: generic-api-key:deploy/compose/.env.example
+    target: AUDIT_OPERATOR_REFERENCE_KEY
+    reason: Local-only placeholder key (ADR-0008 pattern); it is base64 of the text "tenantflow-audit-key-local-only!" and is never used outside a developer machine. Refusing it outside Development is S2-L6. Since ADR-0037 the file no longer holds it; git history still does.
+    owner: user
+    expires: 2027-04-22
+  - tool: secrets
+    id: generic-api-key:src/Hosts/TenantFlow.Api/appsettings.Development.json
+    target: Audit:OperatorReferenceKey
+    reason: The same local-only placeholder key as the entry above, moved into the API's Development settings by ADR-0037 (Proposed). The Dockerfile deletes every appsettings.Development.json from the images, and outside Development the key comes from the secret manager.
+    owner: user
+    expires: 2027-04-22
+  - tool: secrets
+    id: stripe-access-token:tests/Payments/TenantFlow.Payments.Tests/Stripe/StripePaymentProviderTests.cs
+    target: TestKey
+    reason: Synthetic value "sk_test_placeholder..." that tests the Stripe test-mode key rule; not a key.
+    owner: user
+    expires: 2027-04-22
+  - tool: secrets
+    id: stripe-access-token:tests/Database/TenantFlow.Database.Tests/Payments/PaymentReconciliationTests.cs
+    target: Payments:Stripe:SecretKey test setting
+    reason: Synthetic value "sk_test_placeholder..." that selects the Stripe adapter in a test with a fake client; not a key.
+    owner: user
+    expires: 2027-04-22
+  - tool: secrets
+    id: stripe-access-token:docs/specs/0009-security-and-privacy.md
+    target: SPEC-0009 Verification row 13 in commit 7c1d12c
+    reason: The spec once quoted the synthetic test placeholder above; the text is reworded now, but history keeps it. Not a key.
+    owner: user
+    expires: 2027-04-22
+
+  # gosu in postgres 17.11: built with Go 1.24.6. No released postgres 17 image has a newer gosu (17.11 is the latest).
+  - tool: images
+    id: CVE-2025-61726
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.24.12 or 1.25.6) in gosu; golang - net/url - Memory exhaustion in query parameter parsing in net/url. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2025-61729
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.24.11 or 1.25.5) in gosu; crypto/x509 - golang - Denial of Service due to excessive resource consumption via crafted. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2025-68121
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.24.13 or 1.25.7 or 1.26.0-rc.3) in gosu; crypto/tls - crypto/tls - Incorrect certificate validation during TLS session resumption. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-111943
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.26.10 or 1.27.3) in gosu; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-25679
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.8 or 1.26.1) in gosu; net/url - Incorrect parsing of IPv6 host literals in net/url. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-27145
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.11 or 1.26.4) in gosu; crypto/x509 - golang - golang crypto/x509 - Denial of Service via excessive processing of DNS SAN. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-32280
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.9 or 1.26.2) in gosu; crypto/x509 - crypto/tls - golang - Go - Denial of Service vulnerability in certificate chain. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-32281
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.9 or 1.26.2) in gosu; crypto/x509 - golang - Go crypto/x509 - Denial of Service via inefficient certificate chain. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-32283
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.9 or 1.26.2) in gosu; crypto/tls - golang - Go crypto/tls - Denial of Service via multiple TLS 1.3 key update messages. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-33811
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.10 or 1.26.3) in gosu; net - golang - Go net package - Denial of Service via long CNAME response in LookupCNAME. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-33814
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.10 or 1.26.3) in gosu; net/http/internal/http2 - golang - golang.org/x/net - Go HTTP/2 - Denial of Service via malformed. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-33818
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; encoding/asn1 - golang - Go encoding/asn1 - Denial of Service via excessive recursion in Unmarshal. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-39820
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.10 or 1.26.3) in gosu; net/mail - golang - Go net/mail - Denial of Service via crafted email inputs. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-39821
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; golang.org/x/net/idna - golang - net/http - golang.org/x/net/idna - Privilege escalation via. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-39822
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.12 or 1.26.5 or 1.27.0-rc.2) in gosu; golang - Go os.Root - Symlink following vulnerability allows directory traversal. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-39836
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.10 or 1.26.3) in gosu; net - golang - Go net package - Denial of Service via NUL byte in Dial and LookupPort on Windows. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-42499
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.10 or 1.26.3) in gosu; net/mail - golang - net/mail - Denial of Service via pathological email address parsing. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-42504
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.11 or 1.26.4) in gosu; mime - golang - Golang MIME - Denial of Service via maliciously-crafted MIME header. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-56853
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; net/http - golang - Go net/http - Unencrypted HTTP/2 connections vulnerable to Denial of Service. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-56858
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; html/template - golang - Go html/template - Cross-Site Scripting via pathological input. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-56859
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; encoding/xml - golang - Go - Denial of Service via XML decoding recursion depth issue. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-56860
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; net/url - golang - golang net/url - Denial of Service from quadratic complexity in path resolution. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-56862
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.25.13 or 1.26.6 or 1.27.0-rc.3) in gosu; crypto/tls - golang - Golang crypto/tls - Denial of Service via indefinite KeyUpdate messages. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.26.9 or 1.27.2) in gosu; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.26.9 or 1.27.2) in gosu; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: postgres:17.11
+    reason: stdlib 1.24.6 (fixed in 1.26.9 or 1.27.2) in gosu; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. gosu only drops from root to the postgres user at container start and handles no network or untrusted input. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released postgres 17 image fixes it (17.11 still ships gosu built with Go 1.24.6); recheck on the next postgres 17 image or gosu release.
+    owner: user
+    expires: 2026-11-21
+
+  # Keycloak 26.8.0: pcre2 in the UBI 9 base. 26.8.1 (2026-10-13) fixes all three; its 14-day cooldown ends 2026-10-27.
+  - tool: images
+    id: CVE-2026-103111
+    target: quay.io/keycloak/keycloak:26.8.0
+    reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - pcre2 - Out-of-bounds write via crafted regular expression. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-86145
+    target: quay.io/keycloak/keycloak:26.8.0
+    reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - PCRE2 - Out-of-bounds write allows arbitrary code execution via crafted regular expressions. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-89161
+    target: quay.io/keycloak/keycloak:26.8.0
+    reason: pcre2 10.40-6.el9 (fixed in 10.40-7.el9_8), pcre2-syntax 10.40-6.el9 (fixed in 10.40-7.el9_8) in the UBI 9 base; pcre2 - PCRE2 - Memory corruption vulnerability in pcre2_jit_match. Keycloak (Java) does not use pcre2; only OS tools such as grep link it. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in keycloak 26.8.1 (2026-10-13), adoptable after the 14-day cooldown on 2026-10-27.
+    owner: user
+    expires: 2026-11-21
+
+  # OpenTelemetry Collector 0.162.0: Go standard library and golang.org/x/net. 0.163.2 (2026-10-21) fixes all four; cooldown ends 2026-11-04.
+  - tool: images
+    id: CVE-2026-111943
+    target: otel/opentelemetry-collector-contrib:0.162.0
+    reason: stdlib 1.26.8 (fixed in 1.26.10 or 1.27.3) in otelcol-contrib; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; receives OTLP from the local API and Worker. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in otel/opentelemetry-collector-contrib 0.163.x (0.163.0 on 2026-10-16, 0.163.2 scanned clean), adoptable after the cooldown on 2026-11-04 for 0.163.2.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: otel/opentelemetry-collector-contrib:0.162.0
+    reason: stdlib 1.26.8 (fixed in 1.26.9 or 1.27.2) in otelcol-contrib; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; receives OTLP from the local API and Worker. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in otel/opentelemetry-collector-contrib 0.163.x (0.163.0 on 2026-10-16, 0.163.2 scanned clean), adoptable after the cooldown on 2026-11-04 for 0.163.2.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: otel/opentelemetry-collector-contrib:0.162.0
+    reason: golang.org/x/net 0.59.0 (fixed in 0.60.0), stdlib 1.26.8 (fixed in 1.26.9 or 1.27.2) in otelcol-contrib; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; receives OTLP from the local API and Worker. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in otel/opentelemetry-collector-contrib 0.163.x (0.163.0 on 2026-10-16, 0.163.2 scanned clean), adoptable after the cooldown on 2026-11-04 for 0.163.2.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: otel/opentelemetry-collector-contrib:0.162.0
+    reason: stdlib 1.26.8 (fixed in 1.26.9 or 1.27.2) in otelcol-contrib; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; receives OTLP from the local API and Worker. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in otel/opentelemetry-collector-contrib 0.163.x (0.163.0 on 2026-10-16, 0.163.2 scanned clean), adoptable after the cooldown on 2026-11-04 for 0.163.2.
+    owner: user
+    expires: 2026-11-21
+
+  # Prometheus v3.15.0: Go standard library and golang.org/x/net. v3.15.1 (2026-10-21) fixes all four; cooldown ends 2026-11-04.
+  - tool: images
+    id: CVE-2026-111943
+    target: prom/prometheus:v3.15.0
+    reason: stdlib 1.27.1 (fixed in 1.26.10 or 1.27.3) in prometheus and 1 more binaries; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; scrapes local services. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in prom/prometheus v3.15.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: prom/prometheus:v3.15.0
+    reason: stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in prometheus and 1 more binaries; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; scrapes local services. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in prom/prometheus v3.15.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: prom/prometheus:v3.15.0
+    reason: golang.org/x/net 0.58.0 (fixed in 0.60.0), stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in prometheus and 1 more binaries; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; scrapes local services. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in prom/prometheus v3.15.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: prom/prometheus:v3.15.0
+    reason: stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in prometheus and 1 more binaries; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; scrapes local services. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in prom/prometheus v3.15.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+
+  # Loki 3.7.8: Go standard library and golang.org/x/net. 3.7.9 (2026-10-20) fixes all four; cooldown ends 2026-11-03.
+  - tool: images
+    id: CVE-2026-111943
+    target: grafana/loki:3.7.8
+    reason: stdlib 1.26.6 (fixed in 1.26.10 or 1.27.3) in loki; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; receives logs from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/loki 3.7.9 (2026-10-20), adoptable after the 14-day cooldown on 2026-11-03.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: grafana/loki:3.7.8
+    reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2) in loki; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; receives logs from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/loki 3.7.9 (2026-10-20), adoptable after the 14-day cooldown on 2026-11-03.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: grafana/loki:3.7.8
+    reason: golang.org/x/net 0.58.0 (fixed in 0.60.0), stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2) in loki; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; receives logs from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/loki 3.7.9 (2026-10-20), adoptable after the 14-day cooldown on 2026-11-03.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: grafana/loki:3.7.8
+    reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2) in loki; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; receives logs from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/loki 3.7.9 (2026-10-20), adoptable after the 14-day cooldown on 2026-11-03.
+    owner: user
+    expires: 2026-11-21
+
+  # Tempo 3.1.0: Go standard library and golang.org/x/net. 3.1.1 (2026-10-21) fixes all four; cooldown ends 2026-11-04.
+  - tool: images
+    id: CVE-2026-111943
+    target: grafana/tempo:3.1.0
+    reason: stdlib 1.27.1 (fixed in 1.26.10 or 1.27.3) in tempo; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; receives traces from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/tempo 3.1.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: grafana/tempo:3.1.0
+    reason: stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in tempo; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; receives traces from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/tempo 3.1.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: grafana/tempo:3.1.0
+    reason: golang.org/x/net 0.58.0 (fixed in 0.60.0), stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in tempo; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; receives traces from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/tempo 3.1.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: grafana/tempo:3.1.0
+    reason: stdlib 1.27.1 (fixed in 1.26.9 or 1.27.2) in tempo; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; receives traces from the local collector. Local development only; the container binds to 127.0.0.1 and takes input only from local services. Fixed in grafana/tempo 3.1.1 (2026-10-21), adoptable after the 14-day cooldown on 2026-11-04.
+    owner: user
+    expires: 2026-11-21
+
+  # Grafana 13.2.3: Go modules in grafana and its bundled data source plugins. 13.2.4 (2026-10-13, the latest 13.x) still ships all thirteen.
+  - tool: images
+    id: CVE-2026-100349
+    target: grafana/grafana:13.2.3
+    reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.146.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via nil pointer dereference in. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-100351
+    target: grafana/grafana:13.2.3
+    reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.147.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Authentication bypass via URL path decoding. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-100352
+    target: grafana/grafana:13.2.3
+    reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.148.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via improper handling of non-finite. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-100353
+    target: grafana/grafana:13.2.3
+    reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.149.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via nil-pointer dereference in. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-100354
+    target: grafana/grafana:13.2.3
+    reason: github.com/getkin/kin-openapi 0.144.0 (fixed in 0.149.0) in grafana; github.com/getkin/kin-openapi - kin-openapi - Denial of Service via unbounded recursion during. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-111943
+    target: grafana/grafana:13.2.3
+    reason: stdlib 1.26.6 (fixed in 1.26.10 or 1.27.3), stdlib 1.26.7 (fixed in 1.26.10 or 1.27.3) in grafana and 13 more binaries; crypto/x509 - golang - crypto/x509 - Man-in-the-middle attacks via untrusted intermediate. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-21728
+    target: grafana/grafana:13.2.3
+    reason: github.com/grafana/tempo 1.5.1-0.20260910130453-bcfe9f230c1d (fixed in 2.8.4 or 2.9.2 or 2.10.2) in gpx_grafana-tempo-datasource_linux_amd64; grafana/tempo - Tempo - Denial of Service via large queries. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-28377
+    target: grafana/grafana:13.2.3
+    reason: github.com/grafana/tempo 1.5.1-0.20260910130453-bcfe9f230c1d (fixed in 2.10.3) in gpx_grafana-tempo-datasource_linux_amd64; Grafana Tempo - Grafana Tempo - Information disclosure of S3 encryption key via status config. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78667
+    target: grafana/grafana:13.2.3
+    reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2), stdlib 1.26.7 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; net/http - golang - golang - Denial of Service via crafted HTTP Range headers. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-78669
+    target: grafana/grafana:13.2.3
+    reason: golang.org/x/net 0.58.0 (fixed in 0.60.0), stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; net/http - net/http/internal/http2 - golang.org/x/net/http2 - net/http - Denial of Service via. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-84304
+    target: grafana/grafana:13.2.3
+    reason: google.golang.org/grpc 1.83.0 (fixed in 1.83.1) in gpx_grafana_cloudmonitoring_datasource_linux_amd64; google.golang.org/grpc - gRPC-Go - Denial of Service via HTTP/2 DATA Frame Fragmentation. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-84445
+    target: grafana/grafana:13.2.3
+    reason: google.golang.org/grpc 1.83.1 (fixed in 1.82.2 or 1.83.2 or 1.84.0-dev.0.20260825144003-d5a41119e0e3 or 1.85.0-dev.0.20260825072537-93e31b48545e), google.golang.org/grpc 1.83.0 (fixed in 1.82.2 or 1.83.2 or 1.84.0-dev.0.20260825144003-d5a41119e0e3 or 1.85.0-dev.0.20260825072537-93e31b48545e) in gpx_grafana_postgresql_datasource_linux_amd64 and 4 more binaries; google.golang.org/grpc - gRPC-Go - Denial of Service via malformed RPC requests. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: images
+    id: CVE-2026-97031
+    target: grafana/grafana:13.2.3
+    reason: stdlib 1.26.6 (fixed in 1.26.9 or 1.27.2), stdlib 1.26.7 (fixed in 1.26.9 or 1.27.2) in grafana and 13 more binaries; crypto/tls - golang - crypto/tls - Denial of Service via multiple ECH outer extension references. Observability profile only; a local dashboard over local Prometheus, Loki and Tempo. Local development only; the container binds to 127.0.0.1 and takes input only from local services. No released grafana 13 image fixes it (13.2.4 still ships the same version); recheck on the next 13.2 release.
+    owner: user
+    expires: 2026-11-21
+  - tool: iac
+    id: AWS-0053
+    target: deploy/terraform/environment/load_balancer.tf aws_lb.main
+    reason: The load balancer is the product's public entry point (SPEC-0012). It listens on 443 and on 80 for a redirect only, drops invalid headers, and its security group reaches only the API and Keycloak target ports.
+    owner: user
+    expires: 2027-04-22

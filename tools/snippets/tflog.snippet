@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>TenantFlow LoggerMessage</Title>
+      <Shortcut>tflog</Shortcut>
+      <Description>A source-generated log method (ADR-0007). The class must be partial; take EventId from the module's range.</Description>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal><ID>EventId</ID><Default>0</Default><ToolTip>Unique event id within the module's range</ToolTip></Literal>
+        <Literal><ID>Level</ID><Default>Information</Default><ToolTip>LogLevel member</ToolTip></Literal>
+        <Literal><ID>Message</ID><Default>Something happened to {Thing}</Default><ToolTip>Message template; no personal data or secrets (rule 6)</ToolTip></Literal>
+        <Literal><ID>Name</ID><Default>LogSomethingHappened</Default><ToolTip>Method name</ToolTip></Literal>
+        <Literal><ID>Parameters</ID><Default>Guid thing</Default><ToolTip>Parameters matching the template placeholders</ToolTip></Literal>
+      </Declarations>
+      <Code Language="CSharp"><![CDATA[[LoggerMessage(EventId = $EventId$, Level = LogLevel.$Level$, Message = "$Message$")]
+    private static partial void $Name$(ILogger logger, $Parameters$);$end$]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

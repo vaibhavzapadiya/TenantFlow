@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Background worker host. It is a web host only so platforms can probe /health/live and
+    /health/ready; it serves no other HTTP endpoint (SPEC-0001).
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Worker</RootNamespace>
+    <!-- Development only: overrides appsettings.Development.json, for example after changing deploy/compose/.env (ADR-0008). -->
+    <UserSecretsId>tenantflow-worker-3e7b9d41-5a2c-4f86-b0d3-9c1e6a4f2b57</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Messaging.RabbitMq\TenantFlow.BuildingBlocks.Messaging.RabbitMq.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Observability\TenantFlow.BuildingBlocks.Observability.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Scheduling\TenantFlow.BuildingBlocks.Scheduling.csproj" />
+    <!-- Modules the worker runs (ADR-0021): Orders' outbox, the Notifications consumer, and Tenants, which it asks. -->
+    <ProjectReference Include="..\..\Modules\Notifications\TenantFlow.Notifications.Infrastructure\TenantFlow.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Orders\TenantFlow.Orders.Infrastructure\TenantFlow.Orders.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\IdentityAccess\TenantFlow.IdentityAccess.Infrastructure\TenantFlow.IdentityAccess.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventory\TenantFlow.Inventory.Infrastructure\TenantFlow.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Catalog\TenantFlow.Catalog.Infrastructure\TenantFlow.Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Payments\TenantFlow.Payments.Infrastructure\TenantFlow.Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Subscriptions\TenantFlow.Subscriptions.Infrastructure\TenantFlow.Subscriptions.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\ImportsExports\TenantFlow.ImportsExports.Infrastructure\TenantFlow.ImportsExports.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Tenants\TenantFlow.Tenants.Infrastructure\TenantFlow.Tenants.Infrastructure.csproj" />
+    <!-- The audit-event consumer (ADR-0026). -->
+    <ProjectReference Include="..\..\Modules\Audit\TenantFlow.Audit.Infrastructure\TenantFlow.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Operations\TenantFlow.Operations.Infrastructure\TenantFlow.Operations.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TenantFlow.Worker.Tests" />
+  </ItemGroup>
+
+</Project>

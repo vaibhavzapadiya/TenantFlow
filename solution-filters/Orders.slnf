@@ -1,0 +1,22 @@
+{
+  "solution": {
+    "path": "..\\TenantFlow.sln",
+    "projects": [
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Abstractions\\TenantFlow.BuildingBlocks.Abstractions.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Messaging\\TenantFlow.BuildingBlocks.Messaging.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Persistence\\TenantFlow.BuildingBlocks.Persistence.csproj",
+      "src\\BuildingBlocks\\TenantFlow.BuildingBlocks.Validation\\TenantFlow.BuildingBlocks.Validation.csproj",
+      "src\\Modules\\Audit\\TenantFlow.Audit.Contracts\\TenantFlow.Audit.Contracts.csproj",
+      "src\\Modules\\Catalog\\TenantFlow.Catalog.Contracts\\TenantFlow.Catalog.Contracts.csproj",
+      "src\\Modules\\IdentityAccess\\TenantFlow.IdentityAccess.Contracts\\TenantFlow.IdentityAccess.Contracts.csproj",
+      "src\\Modules\\Inventory\\TenantFlow.Inventory.Contracts\\TenantFlow.Inventory.Contracts.csproj",
+      "src\\Modules\\Orders\\TenantFlow.Orders.Application\\TenantFlow.Orders.Application.csproj",
+      "src\\Modules\\Orders\\TenantFlow.Orders.Contracts\\TenantFlow.Orders.Contracts.csproj",
+      "src\\Modules\\Orders\\TenantFlow.Orders.Domain\\TenantFlow.Orders.Domain.csproj",
+      "src\\Modules\\Orders\\TenantFlow.Orders.Infrastructure\\TenantFlow.Orders.Infrastructure.csproj",
+      "src\\Modules\\Payments\\TenantFlow.Payments.Contracts\\TenantFlow.Payments.Contracts.csproj",
+      "src\\Modules\\Tenants\\TenantFlow.Tenants.Contracts\\TenantFlow.Tenants.Contracts.csproj",
+      "tests\\Orders\\TenantFlow.Orders.Tests\\TenantFlow.Orders.Tests.csproj"
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+# terraform init -backend-config=envs/prod.s3.tfbackend -backend-config="bucket=<state_bucket>" -backend-config="kms_key_id=<state_kms_key_arn>"
+# (both from the bootstrap outputs). Each environment has its own state object and lock.
+region       = "ap-south-1"
+key          = "environments/prod/terraform.tfstate"
+encrypt      = true
+use_lockfile = true

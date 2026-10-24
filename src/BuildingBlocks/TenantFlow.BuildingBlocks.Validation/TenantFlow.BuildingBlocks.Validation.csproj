@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The one mapping from a domain rule's error to a FluentValidation field error (ADR-0014, ADR-0016), shared by every
+    module's Application layer so codes and paths cannot drift between modules. Kept out of BuildingBlocks.Abstractions,
+    which stays free of packages because the Domain layers use it.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Validation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

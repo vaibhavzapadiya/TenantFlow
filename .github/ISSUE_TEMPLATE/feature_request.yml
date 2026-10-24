@@ -1,0 +1,47 @@
+name: Feature or design proposal
+description: Suggest a new capability or a change to how something is designed.
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please agree on the approach here before writing code. Changes that touch tenant isolation,
+        authorization, money, audit, the schema, a public contract, messaging or concurrency need a short spec
+        first (see [CONTRIBUTING.md](../blob/main/.github/CONTRIBUTING.md#small-change-or-spec-first)).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who needs this and why? What is hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should happen. API shape, behaviour, or design you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other options and why you prefer this one, including "do nothing".
+  - type: checkboxes
+    id: risk
+    attributes:
+      label: Does this touch any of these?
+      options:
+        - label: Tenant isolation or authorization
+        - label: Payments, refunds or other money
+        - label: Database schema or migrations
+        - label: Public API or event contracts
+        - label: Another module's boundary, messaging or a saga
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to implement it?
+      options:
+        - "Yes"
+        - "Yes, with guidance"
+        - "No"

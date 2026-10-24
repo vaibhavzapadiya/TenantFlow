@@ -1,0 +1,603 @@
+# promtool unit tests for alerts.rules.yml (ADR-0029, SPEC-0010 criterion 10): each rule fires on its harm case and stays
+# quiet on a healthy case and on a short spike below its for duration (or, for a counter threshold, below the threshold).
+# Recorded SLO series are given directly, so the burn-rate alerts are tested apart from the SLIs (slo.rules.test.yml).
+rule_files:
+  - alerts.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Dependencies: the API loses PostgreSQL for good (fires); the Worker loses it for one minute (spike, quiet); the Worker loses RabbitMQ (fires); healthy checks stay quiet.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_health_status{check="postgresql", service_name="tenantflow-api"}'
+        values: '1 1 0x15'
+      - series: 'tenantflow_health_status{check="postgresql", service_name="tenantflow-worker"}'
+        values: '1 1 0 1x15'
+      - series: 'tenantflow_health_status{check="rabbitmq", service_name="tenantflow-worker"}'
+        values: '1 1 0x15'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DatabaseDown
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'cause'
+              dependency: 'database'
+              service_name: 'tenantflow-api'
+            exp_annotations:
+              summary: 'tenantflow-api cannot reach PostgreSQL'
+              runbook: 'docs/operations/runbooks/database-saturation-and-locks.md'
+      - eval_time: 8m
+        alertname: BrokerDown
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'cause'
+              dependency: 'broker'
+              service_name: 'tenantflow-worker'
+            exp_annotations:
+              summary: 'tenantflow-worker cannot reach RabbitMQ'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+      - eval_time: 1m
+        alertname: DatabaseDown
+        exp_alerts: []
+  # Hosts: the API's telemetry stops after 10 minutes (fires 5 minutes later); a 2-minute gap in the Worker's heartbeats is a spike (quiet).
+  - interval: 1m
+    input_series:
+      - series: 'dotnet_process_cpu_time_seconds_total{service_name="tenantflow-api"}'
+        values: '1+1x10'
+      - series: 'tenantflow_worker_heartbeats_total{service_name="tenantflow-worker"}'
+        values: '1+1x10 _x2 13+1x10'
+    alert_rule_test:
+      - eval_time: 18m
+        alertname: ApiTelemetryMissing
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'cause'
+              dependency: 'api'
+              service_name: 'tenantflow-api'
+            exp_annotations:
+              summary: 'No telemetry from the API for 5 minutes: the host or the collector is down'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+      - eval_time: 12m
+        alertname: WorkerTelemetryMissing
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: ApiTelemetryMissing
+        exp_alerts: []
+  # Hosts: the Worker stops (fires).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_worker_heartbeats_total{service_name="tenantflow-worker"}'
+        values: '1+1x5'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: WorkerTelemetryMissing
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'cause'
+              dependency: 'worker'
+              service_name: 'tenantflow-worker'
+            exp_annotations:
+              summary: 'No Worker heartbeat for 5 minutes: the Worker or the collector is down'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+  # Refunds: a reversal at minute 20 pages at once (event alerts have no for: one reversal is the harm); succeeded and failed refunds never page; 15 minutes after the reversal the alert resolves.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_refunds_completed_total{outcome="succeeded", service_name="tenantflow-api"}'
+        values: '0+3x60'
+      - series: 'tenantflow_refunds_completed_total{outcome="failed", service_name="tenantflow-api"}'
+        values: '0+1x60'
+      - series: 'tenantflow_refunds_completed_total{outcome="reversed", service_name="tenantflow-api"}'
+        values: '_x20 1x40'
+    alert_rule_test:
+      - eval_time: 21m
+        alertname: RefundReversed
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'event'
+            exp_annotations:
+              summary: 'A provider failed a refund after reporting success: a customer was not refunded (PY-A25)'
+              runbook: 'docs/operations/runbooks/stuck-payment-and-reconciliation.md'
+      - eval_time: 19m
+        alertname: RefundReversed
+        exp_alerts: []
+      - eval_time: 50m
+        alertname: RefundReversed
+        exp_alerts: []
+  # Dead timers: orders gets one for good (fires after 2 minutes); subscriptions has one for a minute (cleared: quiet); payments has none.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_messaging_dead_timers{module="orders"}'
+        values: '0 0 1x15'
+      - series: 'tenantflow_messaging_dead_timers{module="subscriptions"}'
+        values: '0 0 1 0x15'
+      - series: 'tenantflow_messaging_dead_timers{module="payments"}'
+        values: '0x17'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DeadTimer
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'event'
+              module: 'orders'
+            exp_annotations:
+              summary: 'A workflow timer of orders is dead and will not run again until an operator clears it (MW-A07)'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+  # Dead letters: the audit consumer dead-letters from minute 20 (new series: fires); notifications processes and has old, flat dead letters (quiet).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_messaging_consumed_total{consumer="audit.events", outcome="dead_lettered"}'
+        values: '_x20 1 2 3x20'
+      - series: 'tenantflow_messaging_consumed_total{consumer="notifications.order-events", outcome="dead_lettered"}'
+        values: '2x45'
+      - series: 'tenantflow_messaging_consumed_total{consumer="notifications.order-events", outcome="processed"}'
+        values: '0+50x45'
+    alert_rule_test:
+      - eval_time: 22m
+        alertname: DeadLettersGrowing
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'event'
+              consumer: 'audit.events'
+            exp_annotations:
+              summary: 'Messages from audit.events were dead-lettered in the last 10 minutes'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+      - eval_time: 40m
+        alertname: DeadLettersGrowing
+        exp_alerts: []
+  # Retention: the daily run fails on day 2 (fires); successful runs never page.
+  - interval: 1h
+    input_series:
+      - series: 'tenantflow_scheduling_runs_total{job="retention", outcome="succeeded"}'
+        values: '0+1x60'
+      - series: 'tenantflow_scheduling_runs_total{job="retention", outcome="failed"}'
+        values: '_x30 1x30'
+    alert_rule_test:
+      - eval_time: 31h
+        alertname: RetentionRunFailed
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'event'
+            exp_annotations:
+              summary: 'The daily retention run failed: expired personal data was not removed (DP-A12)'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+      - eval_time: 29h
+        alertname: RetentionRunFailed
+        exp_alerts: []
+  # Cross-tenant probing: 6 not_a_member denials a minute for 15 minutes (fires); thousands of no_token denials are not this alert.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_auth_denials_total{scheme="tenant", reason="not_a_member"}'
+        values: '0+6x20'
+      - series: 'tenantflow_auth_denials_total{scheme="tenant", reason="no_token"}'
+        values: '0+1000x20'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: CrossTenantProbing
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'event'
+            exp_annotations:
+              summary: 'More than 10 requests in 2 minutes were refused because the caller is not a member of the tenant they named'
+              runbook: 'docs/operations/runbooks/suspected-cross-tenant-access.md'
+              description: 'The series carries scheme and reason only; the caller and tenant are in the denial logs (event 2001) and traces.'
+  # Cross-tenant probing: one burst of 40 denials (short spike: true for 2 minutes, less than for) and a steady trickle of 2 a minute (healthy) stay quiet.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_auth_denials_total{scheme="tenant", reason="not_a_member"}'
+        values: '0x5 40x15 40+2x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: CrossTenantProbing
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: CrossTenantProbing
+        exp_alerts: []
+      - eval_time: 29m
+        alertname: CrossTenantProbing
+        exp_alerts: []
+  # Outbox: orders stops publishing (age grows: fires); payments has one slow minute (spike: quiet); tenants is healthy.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_outbox_oldest_pending_age_seconds{module="orders"}'
+        values: '0+60x20'
+      - series: 'tenantflow_outbox_oldest_pending_age_seconds{module="payments"}'
+        values: '0 400 0x18'
+      - series: 'tenantflow_outbox_oldest_pending_age_seconds{module="tenants"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 13m
+        alertname: OutboxStale
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              module: 'orders'
+            exp_annotations:
+              summary: 'The oldest unpublished outbox row of orders is older than 5 minutes'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+  # Scheduled jobs: timers.orders fails every fire (fires); timers.payments fails once (spike: quiet); the metrics task succeeds (healthy).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_scheduling_runs_total{job="timers.orders", outcome="failed"}'
+        values: '0+1x20'
+      - series: 'tenantflow_scheduling_runs_total{job="timers.payments", outcome="failed"}'
+        values: '0 0 1x18'
+      - series: 'tenantflow_scheduling_runs_total{job="imports_exports.metrics", outcome="succeeded"}'
+        values: '0+2x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ScheduledJobFailing
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              job: 'timers.orders'
+            exp_annotations:
+              summary: 'The scheduled job timers.orders failed at least 3 times in 15 minutes'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+  # Scheduled jobs: every fire of timers.orders starts 1 to 5 minutes late (fires after 10 minutes); timers.payments is late for 3 minutes only (spike: quiet); timers.subscriptions is on time (healthy).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.orders", le="60"}'
+        values: '0x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.orders", le="300"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.orders", le="+Inf"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.payments", le="60"}'
+        values: '0+1x10 10x3 11+1x30'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.payments", le="300"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.payments", le="+Inf"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.subscriptions", le="60"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.subscriptions", le="300"}'
+        values: '0+1x40'
+      - series: 'tenantflow_scheduling_lateness_seconds_bucket{job="timers.subscriptions", le="+Inf"}'
+        values: '0+1x40'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: ScheduledJobLate
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              job: 'timers.orders'
+            exp_annotations:
+              summary: 'Fires of timers.orders start more than 2 minutes late'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+      - eval_time: 20m
+        alertname: ScheduledJobLate
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              job: 'timers.orders'
+            exp_annotations:
+              summary: 'Fires of timers.orders start more than 2 minutes late'
+              runbook: 'docs/operations/runbooks/hosts-and-scheduled-jobs.md'
+  # Payments: a payment stays unresolved (age grows: fires); a refund is unresolved for one minute (spike: quiet).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_payments_oldest_unresolved_age_seconds{kind="payment"}'
+        values: '0+60x20'
+      - series: 'tenantflow_payments_oldest_unresolved_age_seconds{kind="refund"}'
+        values: '0 400 0x18'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PaymentsStuck
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              dependency: 'provider'
+              kind: 'payment'
+            exp_annotations:
+              summary: 'A payment checked by reconciliation is still unresolved more than 5 minutes after it was created'
+              runbook: 'docs/operations/runbooks/stuck-payment-and-reconciliation.md'
+  # API errors: half the requests fail for 20 minutes (fires after 10).
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_route="/v1/me", http_request_method="GET", http_response_status_code="200"}'
+        values: '0+10x30'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_route="/v1/me", http_request_method="GET", http_response_status_code="500"}'
+        values: '0+10x30'
+    alert_rule_test:
+      - eval_time: 22m
+        alertname: ApiServerErrors
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+            exp_annotations:
+              summary: 'More than 5% of API requests answer 5xx'
+              runbook: 'docs/operations/runbooks/api-errors.md'
+  # API errors: one minute of 100% 5xx (short spike: true for 5 minutes, less than for) and a 1% background rate stay quiet.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_route="/v1/me", http_request_method="GET", http_response_status_code="200"}'
+        values: '0+99x10 990 990+99x20'
+      - series: 'http_server_request_duration_seconds_count{service_name="tenantflow-api", http_route="/v1/me", http_request_method="GET", http_response_status_code="500"}'
+        values: '0+1x10 110 110+1x20'
+    alert_rule_test:
+      - eval_time: 13m
+        alertname: ApiServerErrors
+        exp_alerts: []
+      - eval_time: 17m
+        alertname: ApiServerErrors
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: ApiServerErrors
+        exp_alerts: []
+  # Imports and exports: a due export waits ever longer (ticket); a due import waits 11 minutes once (spike: quiet).
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_imports_exports_oldest_due_age_seconds{kind="export.run"}'
+        values: '0+60x25'
+      - series: 'tenantflow_imports_exports_oldest_due_age_seconds{kind="import.run"}'
+        values: '0 660 0x23'
+    alert_rule_test:
+      - eval_time: 17m
+        alertname: ImportExportBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              kind: 'export.run'
+            exp_annotations:
+              summary: 'A due export.run job has waited more than 10 minutes'
+              runbook: 'docs/operations/runbooks/failed-import-export.md'
+  # Imports and exports: an export fails (ticket); succeeded imports never alert.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow_imports_exports_jobs_total{kind="export", outcome="failed"}'
+        values: '0 0 1x20'
+      - series: 'tenantflow_imports_exports_jobs_total{kind="import", outcome="succeeded"}'
+        values: '0+3x22'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ImportExportFailures
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              kind: 'export'
+            exp_annotations:
+              summary: 'export jobs failed in the last 30 minutes'
+              runbook: 'docs/operations/runbooks/failed-import-export.md'
+  # SLO catalog_read: a 5-minute spike the hour does not confirm (quiet), then a sustained burn at 20x the budget (fast burn pages, slow burn opens a ticket). Healthy before both.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow:slo_objective{slo="catalog_read"}'
+        values: '0.995x400'
+      - series: 'tenantflow:slo_error_ratio:rate5m{slo="catalog_read"}'
+        values: '0.0005x60 0.1x5 0.0005x60 0.1x260'
+      - series: 'tenantflow:slo_error_ratio:rate30m{slo="catalog_read"}'
+        values: '0.0005x125 0.1x260'
+      - series: 'tenantflow:slo_error_ratio:rate1h{slo="catalog_read"}'
+        values: '0.0005x60 0.036x65 0.1x260'
+      - series: 'tenantflow:slo_error_ratio:rate6h{slo="catalog_read"}'
+        values: '0.0005x125 0.1x260'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SloCatalogReadFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloCatalogReadFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloCatalogReadSlowBurn
+        exp_alerts: []
+      - eval_time: 133m
+        alertname: SloCatalogReadFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              slo: 'catalog_read'
+            exp_annotations:
+              summary: 'The catalog read SLO burns its error budget 14.4x too fast (1h and 5m windows)'
+              runbook: 'docs/operations/runbooks/api-errors.md'
+              description: 'See docs/operations/slos/catalog-read.md. The target is provisional (ADR-0030).'
+      - eval_time: 145m
+        alertname: SloCatalogReadSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              slo: 'catalog_read'
+            exp_annotations:
+              summary: 'The catalog read SLO burns its error budget 6x too fast (6h and 30m windows)'
+              runbook: 'docs/operations/runbooks/api-errors.md'
+              description: 'See docs/operations/slos/catalog-read.md. The target is provisional (ADR-0030).'
+  # SLO order_submission: a 5-minute spike the hour does not confirm (quiet), then a sustained burn at 20x the budget (fast burn pages, slow burn opens a ticket). Healthy before both.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow:slo_objective{slo="order_submission"}'
+        values: '0.99x400'
+      - series: 'tenantflow:slo_error_ratio:rate5m{slo="order_submission"}'
+        values: '0.001x60 0.2x5 0.001x60 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate30m{slo="order_submission"}'
+        values: '0.001x125 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate1h{slo="order_submission"}'
+        values: '0.001x60 0.072x65 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate6h{slo="order_submission"}'
+        values: '0.001x125 0.2x260'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SloOrderSubmissionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloOrderSubmissionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloOrderSubmissionSlowBurn
+        exp_alerts: []
+      - eval_time: 133m
+        alertname: SloOrderSubmissionFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              slo: 'order_submission'
+            exp_annotations:
+              summary: 'The order submission SLO burns its error budget 14.4x too fast (1h and 5m windows)'
+              runbook: 'docs/operations/runbooks/api-errors.md'
+              description: 'See docs/operations/slos/order-submission.md. The target is provisional (ADR-0030).'
+      - eval_time: 145m
+        alertname: SloOrderSubmissionSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              slo: 'order_submission'
+            exp_annotations:
+              summary: 'The order submission SLO burns its error budget 6x too fast (6h and 30m windows)'
+              runbook: 'docs/operations/runbooks/api-errors.md'
+              description: 'See docs/operations/slos/order-submission.md. The target is provisional (ADR-0030).'
+  # SLO payment_resolution: a 5-minute spike the hour does not confirm (quiet), then a sustained burn at 20x the budget (fast burn pages, slow burn opens a ticket). Healthy before both.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow:slo_objective{slo="payment_resolution"}'
+        values: '0.99x400'
+      - series: 'tenantflow:slo_error_ratio:rate5m{slo="payment_resolution"}'
+        values: '0.001x60 0.2x5 0.001x60 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate30m{slo="payment_resolution"}'
+        values: '0.001x125 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate1h{slo="payment_resolution"}'
+        values: '0.001x60 0.072x65 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate6h{slo="payment_resolution"}'
+        values: '0.001x125 0.2x260'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SloPaymentResolutionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloPaymentResolutionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloPaymentResolutionSlowBurn
+        exp_alerts: []
+      - eval_time: 133m
+        alertname: SloPaymentResolutionFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              slo: 'payment_resolution'
+            exp_annotations:
+              summary: 'The payment resolution SLO burns its error budget 14.4x too fast (1h and 5m windows)'
+              runbook: 'docs/operations/runbooks/stuck-payment-and-reconciliation.md'
+              description: 'See docs/operations/slos/payment-resolution.md. The target is provisional (ADR-0030).'
+      - eval_time: 145m
+        alertname: SloPaymentResolutionSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              slo: 'payment_resolution'
+            exp_annotations:
+              summary: 'The payment resolution SLO burns its error budget 6x too fast (6h and 30m windows)'
+              runbook: 'docs/operations/runbooks/stuck-payment-and-reconciliation.md'
+              description: 'See docs/operations/slos/payment-resolution.md. The target is provisional (ADR-0030).'
+  # SLO export_completion: a 5-minute spike the hour does not confirm (quiet), then a sustained burn at 20x the budget (fast burn pages, slow burn opens a ticket). Healthy before both.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow:slo_objective{slo="export_completion"}'
+        values: '0.99x400'
+      - series: 'tenantflow:slo_error_ratio:rate5m{slo="export_completion"}'
+        values: '0.001x60 0.2x5 0.001x60 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate30m{slo="export_completion"}'
+        values: '0.001x125 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate1h{slo="export_completion"}'
+        values: '0.001x60 0.072x65 0.2x260'
+      - series: 'tenantflow:slo_error_ratio:rate6h{slo="export_completion"}'
+        values: '0.001x125 0.2x260'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SloExportCompletionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloExportCompletionFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloExportCompletionSlowBurn
+        exp_alerts: []
+      - eval_time: 133m
+        alertname: SloExportCompletionFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              slo: 'export_completion'
+            exp_annotations:
+              summary: 'The export completion SLO burns its error budget 14.4x too fast (1h and 5m windows)'
+              runbook: 'docs/operations/runbooks/failed-import-export.md'
+              description: 'See docs/operations/slos/export-completion.md. The target is provisional (ADR-0030).'
+      - eval_time: 145m
+        alertname: SloExportCompletionSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              slo: 'export_completion'
+            exp_annotations:
+              summary: 'The export completion SLO burns its error budget 6x too fast (6h and 30m windows)'
+              runbook: 'docs/operations/runbooks/failed-import-export.md'
+              description: 'See docs/operations/slos/export-completion.md. The target is provisional (ADR-0030).'
+  # SLO event_delivery: a 5-minute spike the hour does not confirm (quiet), then a sustained burn at 20x the budget (fast burn pages, slow burn opens a ticket). Healthy before both.
+  - interval: 1m
+    input_series:
+      - series: 'tenantflow:slo_objective{slo="event_delivery"}'
+        values: '0.999x400'
+      - series: 'tenantflow:slo_error_ratio:rate5m{slo="event_delivery"}'
+        values: '0.0001x60 0.02x5 0.0001x60 0.02x260'
+      - series: 'tenantflow:slo_error_ratio:rate30m{slo="event_delivery"}'
+        values: '0.0001x125 0.02x260'
+      - series: 'tenantflow:slo_error_ratio:rate1h{slo="event_delivery"}'
+        values: '0.0001x60 0.0072x65 0.02x260'
+      - series: 'tenantflow:slo_error_ratio:rate6h{slo="event_delivery"}'
+        values: '0.0001x125 0.02x260'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SloEventDeliveryFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloEventDeliveryFastBurn
+        exp_alerts: []
+      - eval_time: 63m
+        alertname: SloEventDeliverySlowBurn
+        exp_alerts: []
+      - eval_time: 133m
+        alertname: SloEventDeliveryFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'page'
+              category: 'symptom'
+              slo: 'event_delivery'
+            exp_annotations:
+              summary: 'The event delivery SLO burns its error budget 14.4x too fast (1h and 5m windows)'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+              description: 'See docs/operations/slos/event-delivery.md. The target is provisional (ADR-0030).'
+      - eval_time: 145m
+        alertname: SloEventDeliverySlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: 'ticket'
+              category: 'symptom'
+              slo: 'event_delivery'
+            exp_annotations:
+              summary: 'The event delivery SLO burns its error budget 6x too fast (6h and 30m windows)'
+              runbook: 'docs/operations/runbooks/queue-backlog-and-poison-messages.md'
+              description: 'See docs/operations/slos/event-delivery.md. The target is provisional (ADR-0030).'

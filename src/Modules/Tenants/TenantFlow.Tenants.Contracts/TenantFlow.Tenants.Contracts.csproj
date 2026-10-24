@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Tenants module's public surface for other modules (ADR-0002). Interfaces, plain data, and the shared error
+    constants other modules need to answer "no such tenant": no Domain, Application, or Infrastructure types, so a
+    consumer can never reach into the module.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Tenants.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

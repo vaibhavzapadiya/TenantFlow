@@ -1,0 +1,6 @@
+# TenantFlow's local environment: "docker compose up -d" from the repository root (ADR-0037).
+# The services are defined in deploy/compose/compose.yaml, next to their configuration.
+name: tenantflow
+
+include:
+  - deploy/compose/compose.yaml

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fault drills for the milestone gate (SPEC-0010 criterion 14, decision 8): each test injects one fault into the running
+    local stack, waits for its alert in Alertmanager, undoes the fault and waits for the recovery. They stop shared
+    dependencies, so they run one at a time, by hand: "dotnet run" on this project in Release with "-method" naming the
+    drill (docs/operations/drills). IsTestProject is false so the default gate builds this project but never runs it.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Drills.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+    <Using Include="TenantFlow.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\TenantFlow.Testing\TenantFlow.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

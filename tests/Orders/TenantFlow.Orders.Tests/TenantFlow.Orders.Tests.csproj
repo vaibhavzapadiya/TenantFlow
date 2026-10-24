@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fast unit tests for the Orders module's Domain and Application layers (blueprint section 15, layer 1):
+    the state table, line rules and validation, with no host and no database.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Orders.Tests</RootNamespace>
+    <!-- xUnit v3 test projects are self-hosting executables. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit v4 no longer adds this implicitly. -->
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Modules\Orders\TenantFlow.Orders.Application\TenantFlow.Orders.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\Modules\Orders\TenantFlow.Orders.Domain\TenantFlow.Orders.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The persistent scheduler (ADR-0023, Open Decision 18): Quartz.NET with its clustered ADO.NET job store in the
+    PostgreSQL schema "scheduler", which the Migrator creates. Quartz fires one recurring job per module that runs the
+    module's due rows (workflow_timers). Used by the Worker only; the Migrator uses the schema's migrations.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.BuildingBlocks.Scheduling</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Quartz.Serialization.SystemTextJson" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Design-time only (dotnet ef migrations); never flows to the hosts. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TenantFlow.BuildingBlocks.Messaging\TenantFlow.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

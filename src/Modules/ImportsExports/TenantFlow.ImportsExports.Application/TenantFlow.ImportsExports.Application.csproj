@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ImportsExports module use cases (ADR-0013), the object storage port (ADR-0024). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.ImportsExports.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.ImportsExports.Domain\TenantFlow.ImportsExports.Domain.csproj" />
+    <!-- Only contracts: the tenant context, and Catalog's imports and exports (ADR-0002, ADR-0024). -->
+    <ProjectReference Include="..\..\IdentityAccess\TenantFlow.IdentityAccess.Contracts\TenantFlow.IdentityAccess.Contracts.csproj" />
+    <ProjectReference Include="..\..\Catalog\TenantFlow.Catalog.Contracts\TenantFlow.Catalog.Contracts.csproj" />
+    <!-- Whether the tenant is still active before a job writes (SPEC-0009 criterion 11). -->
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+    <!-- The audit event a request writes to the module's outbox (ADR-0026). -->
+    <ProjectReference Include="..\..\Audit\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

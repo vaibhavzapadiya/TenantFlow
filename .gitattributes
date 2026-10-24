@@ -1,0 +1,14 @@
+# Normalize line endings so formatting checks behave the same on Windows and Linux CI.
+* text=auto eol=lf
+
+*.sln  text eol=crlf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary
+*.zip  binary
+*.dll  binary
+*.exe  binary

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Audit module's public surface (ADR-0026): the audit.recorded.v1 event other modules write to their outbox, the
+    closed lists of action codes, actor kinds and target types, and the actor value. Plain data only, so a module that
+    writes audit events can never reach into Audit's tables.
+  -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Audit.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Audit module use cases: recording audit events from every module's outbox (SPEC-0009, ADR-0026). -->
+  <PropertyGroup>
+    <RootNamespace>TenantFlow.Audit.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\TenantFlow.BuildingBlocks.Abstractions\TenantFlow.BuildingBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\TenantFlow.Audit.Contracts\TenantFlow.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\TenantFlow.Audit.Domain\TenantFlow.Audit.Domain.csproj" />
+    <!-- Only a contract: whether a message's tenant exists (ADR-0002). -->
+    <ProjectReference Include="..\..\Tenants\TenantFlow.Tenants.Contracts\TenantFlow.Tenants.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

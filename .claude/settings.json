@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet format *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose logs *)",
+      "Bash(wsl docker compose ps *)",
+      "Bash(wsl docker compose logs *)",
+      "PowerShell(dotnet --version)",
+      "PowerShell(dotnet --list-sdks)",
+      "PowerShell(dotnet restore *)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet test *)",
+      "PowerShell(dotnet format *)",
+      "PowerShell(git status *)",
+      "PowerShell(git diff *)",
+      "PowerShell(git log *)",
+      "PowerShell(git show *)",
+      "PowerShell(wsl docker compose ps *)",
+      "PowerShell(wsl docker compose logs *)",
+      "Bash(dotnet run --project tests/*)",
+      "Bash(dotnet run --project tools/*)",
+      "Bash(dotnet sln *)",
+      "Bash(wsl docker compose up *)",
+      "Bash(docker compose up *)",
+      "PowerShell(dotnet run --project tests/*)",
+      "PowerShell(dotnet run --project tools/*)",
+      "PowerShell(dotnet sln *)",
+      "PowerShell(wsl docker compose up *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git tag *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(dotnet ef database *)",
+      "Bash(dotnet ef migrations remove *)",
+      "Bash(docker compose down *)",
+      "Bash(wsl docker compose down *)",
+      "PowerShell(git push *)",
+      "PowerShell(git tag *)",
+      "PowerShell(gh pr create *)",
+      "PowerShell(gh pr merge *)",
+      "PowerShell(dotnet ef database *)",
+      "PowerShell(dotnet ef migrations remove *)",
+      "PowerShell(wsl docker compose down *)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(**/secrets.json)",
+      "Read(**/*.pfx)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(sed -n \"s/.*\\\"file_path\\\":\\\"\\([^\\\"]*\\)\\\".*/\\1/p\" | sed \"s/\\\\\\\\\\\\\\\\/\\//g\"); case \"$f\" in *.cs) dotnet format whitespace --folder --include \"$f\" >/dev/null 2>&1 ;; esac; exit 0",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
