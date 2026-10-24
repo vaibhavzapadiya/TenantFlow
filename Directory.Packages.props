@@ -59,7 +59,7 @@
   -->
   <ItemGroup Label="Scheduling">
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.22.4" />
-    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.4" />
+    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting">
