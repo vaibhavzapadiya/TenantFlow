@@ -32,7 +32,7 @@
 
   <!-- Validation (ADR-0014). 12.2.0 is inside the 14-day cooldown (ADR-0003). -->
   <ItemGroup Label="Validation">
-    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
   </ItemGroup>
 
   <!-- API documentation (ADR-0019). Runtime-aligned servicing package: tracks the runtime patch (10.0.13). -->
