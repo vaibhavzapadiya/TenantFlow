@@ -19,7 +19,7 @@ Grafana; locally `docker compose ps`. Database credentials only for the recovery
 - Pool pressure (PromQL): `sum by (service_name, state) (db_client_connections_usage)` against `db_client_connections_max`
 - Slow commands (PromQL): `histogram_quantile(0.95, sum by (le, service_name) (rate(db_client_commands_duration_seconds_bucket[5m])))`
 - Slow or failing commands with their statements (TraceQL; statement text, never parameter values):
-  `{ span.db.system = "postgresql" && (status = error || duration > 1s) }`
+  `{ span.db.system.name = "postgresql" && (status = error || duration > 1s) }`
 - Connection errors in logs (LogQL): `{service_name=~"tenantflow-api|tenantflow-worker"} |= "Npgsql"`
 - Locally: `docker compose ps` shows whether the `postgres` container runs and is healthy.
 

@@ -21,7 +21,7 @@ API, or the owner role for the queries below.
   unresolved age*, *Provider call latency p95*, *Provider calls by outcome*, *Refunds reversed after success*.
 - Is the provider answering? (PromQL) `sum by (provider, operation, outcome) (rate(tenantflow_payments_provider_duration_seconds_count[5m]))`
 - Unknown outcomes (PromQL): `sum(increase(tenantflow_payments_attempts_total{outcome="unknown"}[30m]))`
-- Reconciliation runs (TraceQL): `{ resource.service.name = "tenantflow-worker" && span.db.system = "postgresql" && span.db.statement =~ ".*payments.*" }`
+- Reconciliation runs (TraceQL): `{ resource.service.name = "tenantflow-worker" && span.db.system.name = "postgresql" && span.db.query.text =~ ".*payments.*" }`
 - The payment's logs (LogQL): `{service_name=~"tenantflow-api|tenantflow-worker"} |~ "(?i)payment"`
 - A reversal (LogQL): `{service_name="tenantflow-api"} |= "after it succeeded"` (event 5301 names the refund and payment ids)
 - Which payments (SQL, owner role, ids only):
