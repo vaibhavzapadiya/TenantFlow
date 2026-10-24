@@ -27,6 +27,24 @@ jobs:
     name: Restore, format, build, test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # The messaging tests need a real broker (ADR-0021). PostgreSQL comes from Testcontainers, which the tests start
+    # themselves; RabbitMQ has to be here, on the same pinned image and defaults the Compose stack uses, so the
+    # database suite runs the same way locally and on CI.
+    services:
+      rabbitmq:
+        image: rabbitmq:4.3.6-management-alpine@sha256:3505b6096cdbc083bcc363e74366f575ecd0c1a55be4dadcbc60fa08e34647e1
+        env:
+          RABBITMQ_DEFAULT_USER: tenantflow
+          RABBITMQ_DEFAULT_PASS: tenantflow-rabbitmq-local-only
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q check_port_connectivity"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 24
+          --health-start-period 15s
     steps:
       # Third-party actions are pinned to full commit SHAs; the tag is kept as a comment.
       - name: Checkout
@@ -66,9 +84,14 @@ jobs:
 
       # Database tests against a Testcontainers PostgreSQL (ADR-0019, Open Decision 21): the runner's Docker is
       # reachable directly, so no Compose stack is needed. Locally, they use the running Compose stack instead.
-      - name: Database tests (Testcontainers PostgreSQL)
+      - name: Database tests (Testcontainers PostgreSQL, service RabbitMQ)
         env:
           TENANTFLOW_TEST_CONTAINER: "1"
+          # Named explicitly rather than read from the Compose defaults, so this step does not depend on compose.yaml.
+          TENANTFLOW_TEST_RABBITMQ_PORT: "5672"
+          TENANTFLOW_TEST_RABBITMQ_MANAGEMENT_PORT: "15672"
+          TENANTFLOW_TEST_RABBITMQ_USER: tenantflow
+          TENANTFLOW_TEST_RABBITMQ_PASSWORD: tenantflow-rabbitmq-local-only
         run: dotnet run --project tests/Database/TenantFlow.Database.Tests --no-build --configuration Release
 
       - name: Upload test results and coverage
