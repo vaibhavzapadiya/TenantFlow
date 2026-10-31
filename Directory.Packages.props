@@ -50,7 +50,7 @@
   <!-- Object storage on S3 in deployed environments (ADR-0024 amendment 1, SPEC-0012 S3c). 4.0.104.2 (2026-10-08): later
        patches are inside the 14-day cooldown (ADR-0003). -->
   <ItemGroup Label="Object storage">
-    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.2" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.4" />
   </ItemGroup>
 
   <!--
